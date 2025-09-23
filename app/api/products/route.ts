@@ -10,13 +10,17 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   // Asegurarse de que el barcode empiece con #
-  const barcode = body.barcode ? (body.barcode.startsWith("#") ? body.barcode : `#${body.barcode}`) : "";
+  const barcode = body.barcode
+    ? body.barcode.startsWith("#")
+      ? body.barcode
+      : `#${body.barcode}`
+    : "";
 
   const data = {
     ...body,
     barcode,
-    price: parseFloat(body.price),
-    stock: parseInt(body.stock),
+    pricePerKg: parseFloat(body.pricePerKg),   // ahora usamos pricePerKg
+    stockGrams: parseInt(body.stockGrams),     // ahora usamos stockGrams
   };
 
   // Validar si el barcode ya existe
@@ -26,7 +30,7 @@ export async function POST(request: Request) {
     });
     if (existing) {
       return NextResponse.json(
-        { error: `El codigo de barra "${barcode}" ya existe.` },
+        { error: `El código de barra "${barcode}" ya existe.` },
         { status: 400 }
       );
     }
@@ -42,7 +46,11 @@ export async function PUT(request: Request) {
   const { id, ...rest } = body;
 
   // Asegurarse de que el barcode empiece con #
-  const barcode = rest.barcode ? (rest.barcode.startsWith("#") ? rest.barcode : `#${rest.barcode}`) : "";
+  const barcode = rest.barcode
+    ? rest.barcode.startsWith("#")
+      ? rest.barcode
+      : `#${rest.barcode}`
+    : "";
 
   // Validar si el barcode ya existe en otro producto
   if (barcode) {
@@ -51,7 +59,7 @@ export async function PUT(request: Request) {
     });
     if (existing && existing.id !== id) {
       return NextResponse.json(
-        { error: `El codigo de barra "${barcode}" ya existe.` },
+        { error: `El código de barra "${barcode}" ya existe.` },
         { status: 400 }
       );
     }
@@ -60,8 +68,12 @@ export async function PUT(request: Request) {
   const data = {
     ...rest,
     barcode,
-    price: rest.price ? parseFloat(rest.price) : undefined,
-    stock: rest.stock ? parseInt(rest.stock) : undefined,
+    pricePerKg: rest.pricePerKg
+      ? parseFloat(rest.pricePerKg)
+      : undefined,
+    stockGrams: rest.stockGrams
+      ? parseInt(rest.stockGrams)
+      : undefined,
   };
 
   const updated = await prisma.product.update({

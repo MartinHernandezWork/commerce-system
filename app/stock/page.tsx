@@ -6,8 +6,8 @@ interface Product {
   id: number;
   name: string;
   description?: string;
-  price: number;
-  stock: number;
+  pricePerKg: number;
+  stockGrams: number;
   barcode?: string;
 }
 
@@ -18,8 +18,8 @@ export default function StockPage() {
     id: 0,
     name: "",
     description: "",
-    price: 0,
-    stock: 0,
+    pricePerKg: 0,
+    stockGrams: 0,
     barcode: "",
   });
   const [errorMessage, setErrorMessage] = useState(""); // Mensaje de error
@@ -66,6 +66,14 @@ export default function StockPage() {
     fetchProducts();
   };
 
+  // función para mostrar stock en gramos o kilos
+  const formatStock = (grams: number) => {
+    if (grams >= 1000) {
+      return `${(grams / 1000).toFixed(2)} kg`;
+    }
+    return `${grams} g`;
+  };
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Manejo de stock</h1>
@@ -82,7 +90,7 @@ export default function StockPage() {
             <th className="border p-2">ID 🔢</th>
             <th className="border p-2">Nombre 🖊️</th>
             <th className="border p-2">Descripción 📄</th>
-            <th className="border p-2">Precio 💰</th>
+            <th className="border p-2">Precio por kilo 💰</th>
             <th className="border p-2">Stock 📦</th>
             <th className="border p-2">Código de barras 🏷️</th>
             <th className="border p-2">Acciones ⚙️</th>
@@ -118,11 +126,11 @@ export default function StockPage() {
                   <td className="border p-2">
                     <input
                       type="number"
-                      value={editForm.price}
+                      value={editForm.pricePerKg}
                       onChange={(e) =>
                         setEditForm({
                           ...editForm,
-                          price: Number(e.target.value),
+                          pricePerKg: Number(e.target.value),
                         })
                       }
                       className="border p-1 w-full"
@@ -131,11 +139,11 @@ export default function StockPage() {
                   <td className="border p-2">
                     <input
                       type="number"
-                      value={editForm.stock}
+                      value={editForm.stockGrams}
                       onChange={(e) =>
                         setEditForm({
                           ...editForm,
-                          stock: Number(e.target.value),
+                          stockGrams: Number(e.target.value),
                         })
                       }
                       className="border p-1 w-full"
@@ -173,9 +181,9 @@ export default function StockPage() {
                     {new Intl.NumberFormat("es-AR", {
                       style: "currency",
                       currency: "ARS",
-                    }).format(p.price)}
+                    }).format(p.pricePerKg)}
                   </td>
-                  <td className="border p-2">{p.stock}</td>
+                  <td className="border p-2">{formatStock(p.stockGrams)}</td>
                   <td className="border p-2">{p.barcode}</td>
                   <td className="border p-2 space-x-2">
                     <button
@@ -184,7 +192,7 @@ export default function StockPage() {
                         setEditForm(p);
                         setErrorMessage(""); // resetear error al comenzar a editar
                       }}
-                      className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                      className="bg-yellow-500 text-black px-2 py-1 rounded hover:bg-yellow-600"
                     >
                       Editar
                     </button>

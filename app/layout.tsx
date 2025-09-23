@@ -16,10 +16,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-gray-100">
         {/* Navbar */}
-        <nav className="bg-blue-600 text-white p-4">
+        <nav className="bg-green-900 text-white p-4">
           <div className="container mx-auto flex justify-between items-center">
             <Link href="/" className="text-xl font-bold hover:underline">
-              Sistema de comercio
+              CON PASAS DE UVA
             </Link>
             <div className="space-x-4">
               <Link href="/products" className="hover:underline">
