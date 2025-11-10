@@ -1,107 +1,94 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
-
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-
-  async function load() {
-    const res = await fetch("/api/suppliers");
-    setSuppliers(await res.json());
-  }
-
-  async function createSupplier(e: any) {
-    e.preventDefault();
-
-    const body = {
-      name,
-      phone: phone || null,
-      email: email || null,
-      address: address || null,
-    };
-
-    await fetch("/api/suppliers", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-
-    // Reset
-    setName("");
-    setPhone("");
-    setEmail("");
-    setAddress("");
-
-    load();
-  }
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    async function load() {
+      const res = await fetch("/api/suppliers");
+      const data = await res.json();
+      setSuppliers(data);
+      setLoading(false);
+    }
     load();
   }, []);
 
+  async function deleteSupplier(id: number) {
+    if (!confirm("¿Seguro que querés eliminar este proveedor?")) return;
+
+    const res = await fetch("/api/suppliers", {
+      method: "DELETE",
+      body: JSON.stringify({ id }),
+    });
+
+    if (res.ok) {
+      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      alert("Error al eliminar proveedor");
+    }
+  }
+
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Proveedores</h1>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-semibold">Proveedores</h1>
 
-      {/* FORMULARIO */}
-      <form onSubmit={createSupplier} className="space-y-4 border p-4 rounded bg-white shadow-sm">
-        <input
-          className="border p-2 w-full rounded"
-          placeholder="Nombre del proveedor"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-
-        <input
-          className="border p-2 w-full rounded"
-          placeholder="Teléfono (opcional)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <input
-          className="border p-2 w-full rounded"
-          placeholder="Email (opcional)"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          className="border p-2 w-full rounded"
-          placeholder="Dirección (opcional)"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-
-        <button className="bg-green-600 text-white px-4 py-2 rounded w-full">
+        <Link
+          href="/suppliers/new"
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow"
+        >
           Crear proveedor
-        </button>
-      </form>
+        </Link>
+      </div>
 
-      {/* LISTADO */}
-      <ul className="space-y-3">
-        {suppliers.map((s) => (
-          <li className="border rounded p-4 bg-white shadow-sm" key={s.id}>
-            <div className="font-semibold text-lg">{s.name}</div>
+      {loading ? (
+        <p>Cargando proveedores...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="p-3">Nombre</th>
+                <th className="p-3">Teléfono</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Dirección</th>
+                <th className="p-3 text-right">Acciones</th>
+              </tr>
+            </thead>
 
-            <div className="text-sm text-gray-700 mt-1">
-              {s.phone && <p>📞 {s.phone}</p>}
-              {s.email && <p>✉️ {s.email}</p>}
-              {s.address && <p>📍 {s.address}</p>}
-            </div>
+            <tbody>
+              {suppliers.map((s) => (
+                <tr key={s.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3 font-medium">{s.name}</td>
+                  <td className="p-3">{s.phone ?? "-"}</td>
+                  <td className="p-3">{s.email ?? "-"}</td>
+                  <td className="p-3">{s.address ?? "-"}</td>
 
-            {!s.phone && !s.email && !s.address && (
-              <p className="text-sm text-gray-500">Sin datos adicionales</p>
-            )}
-          </li>
-        ))}
-      </ul>
+                  <td className="p-3 text-right space-x-2">
+                    <Link
+                      href={`/suppliers/${s.id}/edit`}
+                      className="px-3 py-2 bg-yellow-500 text-white rounded"
+                    >
+                      Editar
+                    </Link>
+
+                    <button
+                      onClick={() => deleteSupplier(s.id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
