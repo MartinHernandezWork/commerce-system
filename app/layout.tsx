@@ -1,4 +1,3 @@
-// app/layout.tsx
 import "./globals.css";
 import Link from "next/link";
 
@@ -13,30 +12,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-100">
+    <html lang="es">
+      <body className="bg-gray-100 min-h-screen flex flex-col">
         {/* Navbar */}
-        <nav className="bg-green-900 text-white p-4">
-          <div className="container mx-auto flex justify-between items-center">
-            <Link href="/" className="text-xl font-bold hover:underline">
-              CON PASAS DE UVA
+        <header className="bg-green-900 text-white px-6 py-4 shadow">
+          <nav className="max-w-6xl mx-auto flex items-center justify-between">
+            <Link href="/" className="text-xl font-bold hover:opacity-80">
+              PUNTO DE VENTA
             </Link>
-            <div className="space-x-4">
-              <Link href="/products" className="hover:underline">
+
+            <div className="hidden sm:flex items-center gap-6">
+              <Link
+                href="/pos"
+                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-400"
+              >
+                POS
+              </Link>
+              <Link href="/products" className="hover:opacity-80">
                 Productos
               </Link>
-              <Link href="/stock" className="hover:underline">
-                Stock
+              <Link href="/categories" className="hover:opacity-80">
+                Categorías
               </Link>
-              <Link href="/sales" className="hover:underline">
-                Ventas
+              <Link href="/suppliers" className="hover:opacity-80">
+                Proveedores
               </Link>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </header>
 
-        {/* Contenido de cada página */}
-        <main className="container mx-auto p-8">{children}</main>
+        {/* Contenido */}
+        <main className="flex-1 max-w-6xl mx-auto w-full p-6">{children}</main>
       </body>
     </html>
   );

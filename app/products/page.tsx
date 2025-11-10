@@ -1,106 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-export default function NewProductPage() {
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    pricePerKg: "",
-    stockGrams: "",
-    barcode: "",
-  });
+export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  useEffect(() => {
+    async function load() {
+      const res = await fetch("/api/products");
+      const data = await res.json();
+      setProducts(data);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Asegurarse de que el barcode empiece con #
-    const barcode = form.barcode
-      ? form.barcode.startsWith("#")
-        ? form.barcode
-        : `#${form.barcode}`
-      : "";
+  async function deleteProduct(id: number) {
+    if (!confirm("¿Seguro que querés eliminar este producto?")) return;
 
     const res = await fetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        barcode,
-        pricePerKg: parseFloat(form.pricePerKg),
-        stockGrams: parseInt(form.stockGrams),
-      }),
+      method: "DELETE",
+      body: JSON.stringify({ id }),
     });
 
-    const data = await res.json();
-
     if (res.ok) {
-      setMessage({ text: `Producto "${data.name}" creado correctamente! ✅`, type: "success" });
-      setForm({ name: "", description: "", pricePerKg: "", stockGrams: "", barcode: "" });
-    } else {
-      setMessage({ text: data.error || "Error creando el producto. ❌", type: "error" });
+      setProducts((prev) => prev.filter((p) => p.id !== id));
     }
-  };
+  }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-2xl shadow-md space-y-4">
-      <h1 className="text-xl font-bold mb-2">Agregar un producto</h1>
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-semibold">Productos</h1>
 
-      {message && (
-        <div
-          className={`p-2 rounded ${
-            message.type === "success" ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
-          }`}
+        <Link
+          href="/products/new"
+          className="bg-blue-600 text-white px-4 py-2 rounded shadow"
         >
-          {message.text}
+          Crear producto
+        </Link>
+      </div>
+
+      {loading ? (
+        <p>Cargando productos...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="p-3">Imagen</th>
+                <th className="p-3">Nombre</th>
+                <th className="p-3">Stock</th>
+                <th className="p-3">Costo</th>
+                <th className="p-3">Venta</th>
+                <th className="p-3">Categoría</th>
+                <th className="p-3">Proveedor</th>
+                <th className="p-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3">
+                    <img
+                      src={p.imageUrl ?? "/placeholder.png"}
+                      className="w-16 h-16 object-cover rounded border"
+                    />
+                  </td>
+
+                  <td className="p-3 font-medium">{p.name}</td>
+                  <td className="p-3">{p.stock}</td>
+                  <td className="p-3">${p.costPrice.toFixed(2)}</td>
+                  <td className="p-3">${p.salePrice.toFixed(2)}</td>
+                  <td className="p-3">{p.category?.name ?? "-"}</td>
+                  <td className="p-3">{p.supplier?.name ?? "-"}</td>
+
+                  <td className="p-3 text-right space-x-2">
+                    <Link
+                      href={`/products/${p.id}/edit`}
+                      className="px-3 py-2 bg-yellow-500 text-white rounded"
+                    >
+                      Editar
+                    </Link>
+
+                    <button
+                      onClick={() => deleteProduct(p.id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          placeholder="Nombre"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="w-full p-2 border rounded-lg"
-          required
-        />
-        <input
-          placeholder="Descripción"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="w-full p-2 border rounded-lg"
-        />
-        <input
-          type="number"
-          placeholder="Precio por kilo"
-          value={form.pricePerKg}
-          onChange={(e) => setForm({ ...form, pricePerKg: e.target.value })}
-          className="w-full p-2 border rounded-lg"
-          required
-        />
-        <input
-          type="number"
-          placeholder="Stock en gramos"
-          value={form.stockGrams}
-          onChange={(e) => setForm({ ...form, stockGrams: e.target.value })}
-          className="w-full p-2 border rounded-lg"
-          required
-        />
-        <input
-          placeholder="Código de barras"
-          value={form.barcode}
-          onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-          className="w-full p-2 border rounded-lg"
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-        >
-          Agregar
-        </button>
-      </form>
     </div>
   );
 }
