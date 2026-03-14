@@ -64,7 +64,7 @@ export default function POSPage() {
       });
     }
 
-    alert("Venta registrada");
+    alert("Venta registrada ✅");
     setCart([]);
 
     await loadData();
@@ -98,7 +98,7 @@ export default function POSPage() {
           <button
             onClick={() => setSelectedCategory(null)}
             className={`px-3 py-1 rounded border ${
-              selectedCategory === null ? "bg-blue-600 text-white" : ""
+              selectedCategory === null ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer" : ""
             }`}
           >
             Todas
@@ -109,7 +109,7 @@ export default function POSPage() {
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 py-1 rounded border ${
-                selectedCategory === cat.id ? "bg-blue-600 text-white" : ""
+                selectedCategory === cat.id ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer" : ""
               }`}
             >
               {cat.name}
@@ -139,7 +139,7 @@ export default function POSPage() {
                   {product.name}
                 </div>
 
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-green-500">
                   ${product.salePrice}
                 </div>
 
@@ -175,9 +175,9 @@ export default function POSPage() {
 
               <button
                 onClick={() => removeFromCart(item.id)}
-                className="text-red-600 font-bold"
+                className="text-red-600 font-bold cursor-pointer"
               >
-                X
+                ❌
               </button>
             </div>
           ))}
@@ -189,7 +189,7 @@ export default function POSPage() {
           </div>
 
           <button
-            className="bg-green-600 text-white w-full mt-3 py-2 rounded"
+            className="bg-green-600 hover:bg-green-700 text-white w-full mt-3 py-2 rounded cursor-pointer"
             onClick={finalizeSale}
             disabled={cart.length === 0}
           >

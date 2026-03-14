@@ -18,7 +18,9 @@ export async function POST(req: Request) {
 
     // Optimize the image (resize + compress)
     const optimized = await sharp(buffer)
-      .resize(800)                 // ancho máximo
+      .resize(256, 256, {
+        fit: "cover",
+      })                            // tamaño máximo
       .jpeg({ quality: 70 })       // compresión
       .toBuffer();
 

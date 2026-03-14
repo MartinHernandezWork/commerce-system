@@ -7,8 +7,8 @@ export default function EditProduct(props: any) {
   const router = useRouter();
 
   // ✅ En Next.js 15, params es un Promise → lo resolvemos
-const rawParams = React.use(props.params) as { id: string };
-const { id } = rawParams;
+  const rawParams = React.use(props.params) as { id: string };
+  const { id } = rawParams;
 
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<any>(null);
@@ -212,28 +212,36 @@ const { id } = rawParams;
           </div>
         </div>
 
+        {/* Imagen */}
         <div>
-          <label className="block font-medium">Imagen del producto</label>
+          <label className="block font-medium mb-2">Imagen del producto</label>
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => uploadImage(e.target.files?.[0]!)}
-          />
-
-          {uploading && <p>Procesando imagen...</p>}
-
-          <div className="mt-3">
-            <img
-              src={imageUrl}
-              className="w-40 h-40 rounded object-cover border"
+          <label className="inline-block bg-blue-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-600">
+            Elegir imagen
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadImage(e.target.files?.[0]!)}
             />
+          </label>
+
+          {uploading && (
+            <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
+          )}
+
+          <div className="mt-3 w-40 h-40 border rounded flex items-center justify-center bg-gray-100 text-gray-400">
+            {imageUrl ? (
+              <img src={imageUrl} className="w-full h-full object-cover" />
+            ) : (
+              <span>Sin imagen</span>
+            )}
           </div>
         </div>
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold"
+          className="inline-block bg-green-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-green-600"
         >
           Guardar cambios
         </button>

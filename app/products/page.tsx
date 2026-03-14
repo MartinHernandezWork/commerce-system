@@ -53,7 +53,7 @@ export default function ProductsPage() {
 
         <Link
           href="/products/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded shadow"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow"
         >
           Crear producto
         </Link>
@@ -89,22 +89,22 @@ export default function ProductsPage() {
 
                   <td className="p-3 font-medium">{p.name}</td>
                   <td className="p-3">{p.stock}</td>
-                  <td className="p-3">${p.costPrice.toFixed(2)}</td>
-                  <td className="p-3">${p.salePrice.toFixed(2)}</td>
+                  <td className="p-3 text-red-500">${p.costPrice.toFixed(2)}</td>
+                  <td className="p-3 text-green-600">${p.salePrice.toFixed(2)}</td>
                   <td className="p-3">{p.category?.name ?? "-"}</td>
                   <td className="p-3">{p.supplier?.name ?? "-"}</td>
 
                   <td className="p-3 text-right space-x-2">
                     <Link
                       href={`/products/${p.id}/edit`}
-                      className="px-3 py-2 bg-yellow-500 text-white rounded"
+                      className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded cursor-pointer"
                     >
                       Editar
                     </Link>
 
                     <button
                       onClick={() => deleteProduct(p.id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded"
+                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
                     >
                       Eliminar
                     </button>

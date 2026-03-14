@@ -39,7 +39,7 @@ export default function SuppliersPage() {
 
         <Link
           href="/suppliers/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded shadow"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow"
         >
           Crear proveedor
         </Link>
@@ -71,14 +71,14 @@ export default function SuppliersPage() {
                   <td className="p-3 text-right space-x-2">
                     <Link
                       href={`/suppliers/${s.id}/edit`}
-                      className="px-3 py-2 bg-yellow-500 text-white rounded"
+                      className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded cursor-pointer"
                     >
                       Editar
                     </Link>
 
                     <button
                       onClick={() => deleteSupplier(s.id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded"
+                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
                     >
                       Eliminar
                     </button>

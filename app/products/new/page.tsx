@@ -13,7 +13,7 @@ export default function CreateProductPage() {
     async function fetchData() {
       const [catRes, supRes] = await Promise.all([
         fetch("/api/categories"),
-        fetch("/api/suppliers")
+        fetch("/api/suppliers"),
       ]);
 
       setCategories(await catRes.json());
@@ -74,8 +74,10 @@ export default function CreateProductPage() {
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <h1 className="text-3xl font-semibold">Crear Producto</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6 border p-6 rounded-lg shadow-sm bg-white">
-
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 border p-6 rounded-lg shadow-sm bg-white"
+      >
         <div className="space-y-2">
           <label className="block font-medium">Nombre</label>
           <input
@@ -179,28 +181,35 @@ export default function CreateProductPage() {
         </div>
 
         {/* Imagen */}
-        <div className="space-y-2">
-          <label className="block font-medium">Imagen del producto</label>
+        <div>
+          <label className="block font-medium mb-2">Imagen del producto</label>
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => uploadImage(e.target.files?.[0]!)}
-          />
-
-          {uploading && <p className="text-sm text-gray-500">Optimizando imagen...</p>}
-
-          {imageUrl && (
-            <img
-              src={imageUrl}
-              className="mt-4 w-40 h-40 object-cover rounded border"
+          <label className="inline-block bg-blue-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-600">
+            Elegir imagen
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadImage(e.target.files?.[0]!)}
             />
+          </label>
+
+          {uploading && (
+            <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
           )}
+
+          <div className="mt-3 w-40 h-40 border rounded flex items-center justify-center bg-gray-100 text-gray-400">
+            {imageUrl ? (
+              <img src={imageUrl} className="w-full h-full object-cover" />
+            ) : (
+              <span>Sin imagen</span>
+            )}
+          </div>
         </div>
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold"
+          className="inline-block bg-green-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-green-600"
         >
           Crear producto
         </button>

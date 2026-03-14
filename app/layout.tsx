@@ -15,18 +15,18 @@ export default function RootLayout({
     <html lang="es">
       <body className="bg-gray-100 min-h-screen flex flex-col">
         {/* Navbar */}
-        <header className="bg-green-900 text-white px-6 py-4 shadow">
+        <header className="bg-black text-white px-6 py-4 shadow">
           <nav className="max-w-6xl mx-auto flex items-center justify-between">
             <Link href="/" className="text-xl font-bold hover:opacity-80">
-              PUNTO DE VENTA
+              PUNTO DE VENTA 🛒
             </Link>
 
             <div className="hidden sm:flex items-center gap-6">
               <Link
                 href="/pos"
-                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-400"
+                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
               >
-                POS
+                Ventas
               </Link>
               <Link href="/products" className="hover:opacity-80">
                 Productos
