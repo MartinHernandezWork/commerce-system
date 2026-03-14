@@ -18,17 +18,33 @@ export default function ProductsPage() {
   }, []);
 
   async function deleteProduct(id: number) {
-    if (!confirm("¿Seguro que querés eliminar este producto?")) return;
+  const confirm1 = confirm(
+    "⚠️ ATENCIÓN\n\nSi eliminás este producto se borrarán:\n- ventas registradas\n- movimientos de stock\n- historial\n\n¿Querés continuar?"
+  );
 
-    const res = await fetch("/api/products", {
-      method: "DELETE",
-      body: JSON.stringify({ id }),
-    });
+  if (!confirm1) return;
 
-    if (res.ok) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-    }
+  const confirmText = prompt(
+    "Escriba ELIMINAR para confirmar definitivamente"
+  );
+
+  if (confirmText !== "ELIMINAR") {
+    alert("Eliminación cancelada");
+    return;
   }
+
+  const res = await fetch("/api/products", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
+  });
+
+  if (res.ok) {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  } else {
+    alert("Error al eliminar producto");
+  }
+}
+
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">

@@ -10,26 +10,41 @@ export default function POSPage() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
 
+  async function loadData() {
+    const p = await fetch("/api/products").then((r) => r.json());
+    const c = await fetch("/api/categories").then((r) => r.json());
+
+    setProducts(p);
+    setCategories(c);
+  }
+
   useEffect(() => {
-    async function load() {
-      const p = await fetch("/api/products").then((r) => r.json());
-      const c = await fetch("/api/categories").then((r) => r.json());
-
-      setProducts(p);
-      setCategories(c);
-    }
-
-    load();
+    loadData();
   }, []);
 
+  function getAvailableStock(productId: number, stock: number) {
+    const item = cart.find((p) => p.id === productId);
+    if (!item) return stock;
+    return stock - item.qty;
+  }
+
   function addToCart(product: any) {
+    const available = getAvailableStock(product.id, product.stock);
+
+    if (available <= 0) {
+      alert("No hay más stock disponible");
+      return;
+    }
+
     setCart((prev) => {
       const found = prev.find((p) => p.id === product.id);
+
       if (found) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, qty: p.qty + 1 } : p
+          p.id === product.id ? { ...p, qty: p.qty + 1 } : p,
         );
       }
+
       return [...prev, { ...product, qty: 1 }];
     });
   }
@@ -51,6 +66,8 @@ export default function POSPage() {
 
     alert("Venta registrada");
     setCart([]);
+
+    await loadData();
   }
 
   const filteredProducts = products.filter((p) => {
@@ -68,7 +85,6 @@ export default function POSPage() {
     <div className="flex h-screen">
       {/* IZQUIERDA: GRILLA */}
       <div className="flex-1 p-4 overflow-y-auto">
-
         {/* Buscador */}
         <input
           className="border p-2 rounded w-full mb-4"
@@ -103,22 +119,36 @@ export default function POSPage() {
 
         {/* GRILLA DE PRODUCTOS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              onClick={() => addToCart(product)}
-              className="cursor-pointer border rounded-lg p-2 shadow-sm hover:shadow-md"
-            >
-              <img
-                src={product.imageUrl ?? "/placeholder.png"}
-                className="w-full h-32 object-cover rounded"
-              />
-              <div className="mt-2 text-center font-medium">{product.name}</div>
-              <div className="text-center text-sm text-gray-600">
-                ${product.salePrice}
+          {filteredProducts.map((product) => {
+            const available = getAvailableStock(product.id, product.stock);
+
+            return (
+              <div
+                key={product.id}
+                onClick={() => available > 0 && addToCart(product)}
+                className={`border rounded-lg p-2 shadow-sm
+        ${available > 0 ? "cursor-pointer hover:shadow-md" : "opacity-40"}
+      `}
+              >
+                <img
+                  src={product.imageUrl ?? "/placeholder.png"}
+                  className="w-full h-32 object-cover rounded"
+                />
+
+                <div className="mt-2 text-center font-medium">
+                  {product.name}
+                </div>
+
+                <div className="text-center text-sm text-gray-600">
+                  ${product.salePrice}
+                </div>
+
+                <div className="text-center text-xs text-gray-500">
+                  Stock: {available}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -155,11 +185,7 @@ export default function POSPage() {
 
         <div className="mt-4 border-t pt-4">
           <div className="text-lg font-semibold">
-            Total: $
-            {cart.reduce(
-              (sum, p) => sum + p.salePrice * p.qty,
-              0
-            )}
+            Total: ${cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0)}
           </div>
 
           <button

@@ -60,7 +60,7 @@ model Category {
 model Sale {
   id         Int        @id @default(autoincrement())
   productId  Int
-  product    Product    @relation(fields: [productId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity   Int
   totalPrice Float
   createdAt  DateTime   @default(now())
@@ -69,7 +69,7 @@ model Sale {
 model StockMovement {
   id         Int       @id @default(autoincrement())
   productId  Int
-  product    Product   @relation(fields: [productId], references: [id])
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   type       StockMovementType  // PURCHASE, ADJUSTMENT, LOSS, etc.
   quantity   Int                // positivo o negativo según movimiento
