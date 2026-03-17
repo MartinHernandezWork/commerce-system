@@ -4,10 +4,14 @@ import { NextResponse } from "next/server";
 export async function POST() {
 
   const cash = await prisma.cashRegister.findFirst({
-    where: { closedAt: null },
-    orderBy: { openedAt: "desc" },
+    where: {
+      closedAt: null,
+    },
     include: {
       saleGroups: true,
+    },
+    orderBy: {
+      openedAt: "desc",
     },
   });
 
