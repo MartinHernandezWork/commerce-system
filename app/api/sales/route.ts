@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { productId, quantity } = await req.json();
+    const { productId, quantity, groupId } = await req.json();
 
     const productIdNum = Number(productId);
     const quantityNum = Number(quantity);
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
           productId: productIdNum,
           quantity: quantityNum,
           totalPrice,
+          groupId: groupId ?? null,
         },
       });
 

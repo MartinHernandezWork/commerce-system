@@ -54,17 +54,46 @@ export default function POSPage() {
   }
 
   async function finalizeSale() {
+    if (cart.length === 0) return;
+
+    const total = cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0);
+
+    // 1️⃣ crear ticket (SaleGroup)
+
+    const groupRes = await fetch("/api/sale-group/create", {
+      method: "POST",
+      body: JSON.stringify({ total }),
+    });
+
+    const groupData = await groupRes.json();
+
+    if (!groupRes.ok) {
+      if (groupData.error === "NO_CASH_OPEN") {
+        alert("⚠️ No hay caja abierta");
+        return;
+      }
+
+      alert("Error creando ticket");
+      return;
+    }
+
+    const groupId = groupData.id;
+
+    // 2️⃣ crear ventas
+
     for (const item of cart) {
       await fetch("/api/sales", {
         method: "POST",
         body: JSON.stringify({
           productId: item.id,
           quantity: item.qty,
+          groupId,
         }),
       });
     }
 
     alert("Venta registrada ✅");
+
     setCart([]);
 
     await loadData();
@@ -98,7 +127,9 @@ export default function POSPage() {
           <button
             onClick={() => setSelectedCategory(null)}
             className={`px-3 py-1 rounded border ${
-              selectedCategory === null ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer" : ""
+              selectedCategory === null
+                ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
+                : ""
             }`}
           >
             Todas
@@ -109,7 +140,9 @@ export default function POSPage() {
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 py-1 rounded border ${
-                selectedCategory === cat.id ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer" : ""
+                selectedCategory === cat.id
+                  ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
+                  : ""
               }`}
             >
               {cat.name}

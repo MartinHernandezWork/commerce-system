@@ -37,6 +37,15 @@ export default function RootLayout({
               <Link href="/suppliers" className="hover:opacity-80">
                 Proveedores
               </Link>
+              <Link href="/history" className="hover:opacity-80">
+                Historial
+              </Link>
+              <Link href="/cash" className="hover:opacity-80">
+                Abrir caja
+              </Link>
+              <Link href="/cash/close" className="hover:opacity-80">
+                Cerrar caja
+              </Link>
             </div>
           </nav>
         </header>

@@ -57,7 +57,7 @@ export default function NewSupplierPage() {
           onChange={(e) => setAddress(e.target.value)}
         />
 
-        <button className="bg-green-500 text-white px-4 py-2 rounded w-full">
+        <button className="bg-green-500 hover:bg-green-600 cursor-pointer text-white px-4 py-2 rounded w-full">
           Guardar
         </button>
       </form>

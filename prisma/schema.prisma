@@ -15,67 +15,96 @@ datasource db {
 
 // prisma/schema.prisma
 model Product {
-  id            Int           @id @default(autoincrement())
-  name          String
-  sku           String?       @unique
-  barcode       String?       @unique
-  description   String?
+  id          Int     @id @default(autoincrement())
+  name        String
+  sku         String? @unique
+  barcode     String? @unique
+  description String?
 
-  stock         Int           @default(0)     // existencias en unidades
+  stock Int @default(0) // existencias en unidades
 
-  costPrice     Float          // precio de costo
-  salePrice     Float          // precio de venta
+  costPrice Float // precio de costo
+  salePrice Float // precio de venta
 
-  imageUrl String?             // imagen del producto
+  imageUrl String? // imagen del producto
 
-  supplierId    Int?
-  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  supplierId Int?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
-  categoryId    Int?
-  category      Category?      @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  sales         Sale[]
+  sales          Sale[]
   stockMovements StockMovement[]
 }
 
 model Supplier {
-  id          Int        @id @default(autoincrement())
-  name        String
-  phone       String?
-  email       String?
-  address     String?
-  products    Product[]
-  createdAt   DateTime   @default(now())
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
 }
 
 model Category {
-  id        Int        @id @default(autoincrement())
-  name      String
-  products  Product[]
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
 }
 
 model Sale {
-  id         Int        @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   productId  Int
-  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
   quantity   Int
   totalPrice Float
-  createdAt  DateTime   @default(now())
+  createdAt  DateTime @default(now())
+
+  groupId Int?
+  group   SaleGroup? @relation(fields: [groupId], references: [id])
+}
+
+model SaleGroup {
+  id Int @id @default(autoincrement())
+
+  total Float
+
+  createdAt DateTime @default(now())
+
+  sales Sale[]
+
+  cashId Int?
+  cash   CashRegister? @relation(fields: [cashId], references: [id])
+}
+
+model CashRegister {
+  id Int @id @default(autoincrement())
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  initial Float
+  final   Float?
+
+  saleGroups SaleGroup[]
 }
 
 model StockMovement {
-  id         Int       @id @default(autoincrement())
-  productId  Int
-  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  type       StockMovementType  // PURCHASE, ADJUSTMENT, LOSS, etc.
-  quantity   Int                // positivo o negativo según movimiento
-  note       String?
+  type     StockMovementType // PURCHASE, ADJUSTMENT, LOSS, etc.
+  quantity Int // positivo o negativo según movimiento
+  note     String?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 enum StockMovementType {
@@ -84,4 +113,3 @@ enum StockMovementType {
   ADJUSTMENT
   LOSS
 }
-
