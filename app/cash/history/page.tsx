@@ -15,6 +15,20 @@ export default function CashHistoryPage() {
     load();
   }, []);
 
+  function totalsByMethod(groups: any[]) {
+    let cash = 0;
+    let transfer = 0;
+    let card = 0;
+
+    for (const g of groups) {
+      if (g.paymentMethod === "CASH") cash += g.total;
+      if (g.paymentMethod === "TRANSFER") transfer += g.total;
+      if (g.paymentMethod === "CARD") card += g.total;
+    }
+
+    return { cash, transfer, card };
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl mb-4">Historial de cajas</h1>
@@ -26,25 +40,36 @@ export default function CashHistoryPage() {
             0,
           );
 
+          const totals = totalsByMethod(cash.saleGroups);
+
           return (
-            <div key={cash.id} className="border p-4 rounded">
-              <div>
-                Fecha apertura:
-                {new Date(cash.openedAt).toLocaleString()}
-              </div>
+            <div key={cash.id} className="border p-4 rounded shadow-sm">
+              <div className="font-bold">Caja #{cash.id}</div>
+
+              <div>Apertura: {new Date(cash.openedAt).toLocaleString()}</div>
 
               <div>
-                Fecha cierre:
+                Cierre:{" "}
                 {cash.closedAt
                   ? new Date(cash.closedAt).toLocaleString()
                   : "Abierta"}
               </div>
 
-              <div>Inicial: {cash.initial}</div>
+              <div>Inicial: ${cash.initial}</div>
 
-              <div>Vendido: {totalSales}</div>
+              <div className="mt-2 font-semibold">Vendido: ${totalSales}</div>
 
-              <div>Final: {cash.final ?? "-"}</div>
+              {/* 🔹 NUEVO */}
+
+              <div className="mt-2 text-sm">
+                <div>Efectivo: ${totals.cash}</div>
+
+                <div>Transferencia: ${totals.transfer}</div>
+
+                <div>Tarjeta: ${totals.card}</div>
+              </div>
+
+              <div className="mt-2">Final: ${cash.final ?? "-"}</div>
             </div>
           );
         })}

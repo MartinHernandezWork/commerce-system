@@ -6,6 +6,8 @@ export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
 
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
@@ -62,7 +64,14 @@ export default function POSPage() {
 
     const groupRes = await fetch("/api/sale-group/create", {
       method: "POST",
-      body: JSON.stringify({ total }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        total,
+        customerName,
+        paymentMethod,
+      }),
     });
 
     const groupData = await groupRes.json();
@@ -214,6 +223,25 @@ export default function POSPage() {
               </button>
             </div>
           ))}
+        </div>
+
+        <div className="flex gap-3 mb-3">
+          <input
+            placeholder="Nombre cliente"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="border px-2 py-1 rounded"
+          />
+
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="border px-2 py-1 rounded"
+          >
+            <option value="CASH">Efectivo</option>
+            <option value="TRANSFER">Transferencia</option>
+            <option value="CARD">Tarjeta</option>
+          </select>
         </div>
 
         <div className="mt-4 border-t pt-4">

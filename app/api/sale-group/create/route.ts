@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
 
-    const { total } = await req.json();
+    const { total, customerName, paymentMethod } = await req.json();
 
     // ✅ verificar caja abierta
 
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     const group = await prisma.saleGroup.create({
       data: {
         total,
+        customerName: customerName || null,
+        paymentMethod: paymentMethod || "CASH",
         cashId: cash.id,
       },
     });
@@ -34,6 +36,8 @@ export async function POST(req: Request) {
     return NextResponse.json(group);
 
   } catch (err) {
+
+    console.error(err);
 
     return NextResponse.json(
       { error: "Error creando ticket" },
