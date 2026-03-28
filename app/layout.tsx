@@ -1,9 +1,8 @@
 import "./globals.css";
-import Link from "next/link";
 import Navbar from "./navbar";
 
 export const metadata = {
-  title: "Commerce System",
+  title: "Sistema Ventas",
   description: "Manage products, stock and sales",
 };
 
@@ -15,13 +14,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="bg-gray-100 min-h-screen flex flex-col">
-
         <Navbar />
 
-        <main className="flex-1 max-w-6xl mx-auto w-full p-6">
-          {children}
-        </main>
-
+        <main className="flex-1 max-w-6xl mx-auto w-full p-6">{children}</main>
       </body>
     </html>
   );
