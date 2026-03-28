@@ -23,28 +23,28 @@ export default function CashHistoryPage() {
         {data.map((cash) => {
           const totalSales = cash.saleGroups.reduce(
             (sum: number, g: any) => sum + g.total,
-            0,
+            0
           );
 
           return (
             <div key={cash.id} className="border p-4 rounded">
               <div>
-                Fecha apertura:
+                🗓️Fecha apertura:{" "}
                 {new Date(cash.openedAt).toLocaleString()}
               </div>
 
               <div>
-                Fecha cierre:
+                🗓️Fecha cierre:{" "}
                 {cash.closedAt
                   ? new Date(cash.closedAt).toLocaleString()
                   : "Abierta"}
               </div>
 
-              <div>Inicial: {cash.initial}</div>
+              <div>💰 Dinero Inicial: ${cash.initial}</div>
 
-              <div>Vendido: {totalSales}</div>
+              <div className="text-green-800">📈 Ventas: ${totalSales}</div>
 
-              <div>Final: {cash.final ?? "-"}</div>
+              <div>📠 Dinero en caja: ${cash.final ?? "-"}</div>
             </div>
           );
         })}

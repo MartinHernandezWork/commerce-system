@@ -41,7 +41,7 @@ export default function HistoryPage() {
 
             <div className="text-sm">💳 Metodo: {group.paymentMethod}</div>
 
-            <div className="mt-2 font-semibold">Total: ${group.total}</div>
+            <div className="mt-2 font-semibold text-green-800">Total: ${group.total}</div>
           </div>
         ))}
       </div>
