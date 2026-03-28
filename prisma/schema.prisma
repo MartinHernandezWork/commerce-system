@@ -58,10 +58,10 @@ model Category {
 }
 
 model Sale {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   quantity   Int
   totalPrice Float
   createdAt  DateTime @default(now())
@@ -73,9 +73,10 @@ model Sale {
 model SaleGroup {
   id Int @id @default(autoincrement())
 
-  total Float
-
-  createdAt DateTime @default(now())
+  total         Float
+  customerName  String?
+  paymentMethod String
+  createdAt     DateTime @default(now())
 
   sales Sale[]
 

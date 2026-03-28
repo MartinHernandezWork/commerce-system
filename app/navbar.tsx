@@ -76,7 +76,7 @@ export default function Navbar() {
           <Link
             href="/pos"
             onClick={closeMenu}
-            className="bg-green-700 hover:bg-green-500 px-3 py-1 rounded cursor-pointer"
+            className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded cursor-pointer"
           >
             Ventas
           </Link>
