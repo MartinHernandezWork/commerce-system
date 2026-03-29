@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [name, setName] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   async function load() {
     const res = await fetch("/api/categories");
@@ -16,10 +18,38 @@ export default function CategoriesPage() {
 
     await fetch("/api/categories", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
 
     setName("");
+    load();
+  }
+
+  async function deleteCategory(id: number) {
+    if (!confirm("¿Seguro que querés eliminar esta categoría?")) return;
+
+    await fetch(`/api/categories/${id}`, {
+      method: "DELETE",
+    });
+
+    load();
+  }
+
+  function startEdit(cat: any) {
+    setEditingId(cat.id);
+    setEditingName(cat.name);
+  }
+
+  async function saveEdit(id: number) {
+    await fetch(`/api/categories/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editingName }),
+    });
+
+    setEditingId(null);
+    setEditingName("");
     load();
   }
 
@@ -41,7 +71,7 @@ export default function CategoriesPage() {
           required
         />
 
-        <button className="inline-block bg-blue-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-600">
+        <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
           Crear
         </button>
       </form>
@@ -50,10 +80,54 @@ export default function CategoriesPage() {
       <ul className="space-y-2">
         {categories.map((c) => (
           <li
-            className="border rounded p-3 bg-white shadow-sm"
             key={c.id}
+            className="border rounded p-3 bg-white shadow-sm flex justify-between items-center"
           >
-            {c.name}
+            {editingId === c.id ? (
+              <>
+  <input
+    className="border p-1 flex-1 mr-2"
+    value={editingName}
+    onChange={(e) => setEditingName(e.target.value)}
+  />
+
+  <div className="flex gap-2">
+    <button
+      onClick={() => saveEdit(c.id)}
+      className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded cursor-pointer"
+    >
+      Guardar
+    </button>
+
+    <button
+      onClick={() => setEditingId(null)}
+      className="px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded cursor-pointer"
+    >
+      Cancelar
+    </button>
+  </div>
+</>
+            ) : (
+              <>
+                <span>{c.name}</span>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEdit(c)}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded cursor-pointer"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    onClick={() => deleteCategory(c.id)}
+                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>

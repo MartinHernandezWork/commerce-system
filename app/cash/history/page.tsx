@@ -37,39 +37,30 @@ export default function CashHistoryPage() {
         {data.map((cash) => {
           const totalSales = cash.saleGroups.reduce(
             (sum: number, g: any) => sum + g.total,
-            0,
+            0
           );
 
           const totals = totalsByMethod(cash.saleGroups);
 
           return (
-            <div key={cash.id} className="border p-4 rounded shadow-sm">
-              <div className="font-bold">Caja #{cash.id}</div>
-
-              <div>Apertura: {new Date(cash.openedAt).toLocaleString()}</div>
+            <div key={cash.id} className="border p-4 rounded">
+              <div>
+                🗓️Fecha apertura:{" "}
+                {new Date(cash.openedAt).toLocaleString()}
+              </div>
 
               <div>
-                Cierre:{" "}
+                🗓️Fecha cierre:{" "}
                 {cash.closedAt
                   ? new Date(cash.closedAt).toLocaleString()
                   : "Abierta"}
               </div>
 
-              <div>Inicial: ${cash.initial}</div>
+              <div>💰 Dinero Inicial: ${cash.initial}</div>
 
-              <div className="mt-2 font-semibold">Vendido: ${totalSales}</div>
+              <div className="text-green-800">📈 Ventas: ${totalSales}</div>
 
-              {/* 🔹 NUEVO */}
-
-              <div className="mt-2 text-sm">
-                <div>Efectivo: ${totals.cash}</div>
-
-                <div>Transferencia: ${totals.transfer}</div>
-
-                <div>Tarjeta: ${totals.card}</div>
-              </div>
-
-              <div className="mt-2">Final: ${cash.final ?? "-"}</div>
+              <div>📠 Dinero en caja: ${cash.final ?? "-"}</div>
             </div>
           );
         })}

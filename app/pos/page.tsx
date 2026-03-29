@@ -7,7 +7,7 @@ export default function POSPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [paymentMethod, setPaymentMethod] = useState("efectivo");
 
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
@@ -43,7 +43,7 @@ export default function POSPage() {
 
       if (found) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, qty: p.qty + 1 } : p,
+          p.id === product.id ? { ...p, qty: p.qty + 1 } : p
         );
       }
 
@@ -64,9 +64,6 @@ export default function POSPage() {
 
     const groupRes = await fetch("/api/sale-group/create", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         total,
         customerName,
@@ -104,6 +101,8 @@ export default function POSPage() {
     alert("Venta registrada ✅");
 
     setCart([]);
+    setCustomerName("");
+    setPaymentMethod("efectivo");
 
     await loadData();
   }
@@ -224,23 +223,22 @@ export default function POSPage() {
             </div>
           ))}
         </div>
-
-        <div className="flex gap-3 mb-3">
+        <div className="mt-4 border-t pt-4 space-y-2">
           <input
-            placeholder="Nombre cliente"
+            type="text"
+            placeholder="Nombre del cliente (opcional)"
+            className="border p-2 rounded w-full"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            className="border px-2 py-1 rounded"
           />
 
           <select
+            className="border p-2 rounded w-full"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="border px-2 py-1 rounded"
           >
-            <option value="CASH">Efectivo</option>
-            <option value="TRANSFER">Transferencia</option>
-            <option value="CARD">Tarjeta</option>
+            <option value="efectivo">💵 Efectivo </option>
+            <option value="transferencia">📲 Transferencia</option>
           </select>
         </div>
 
