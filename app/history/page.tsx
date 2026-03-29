@@ -15,60 +15,80 @@ export default function HistoryPage() {
     load();
   }, []);
 
-  function paymentLabel(method: string) {
-    if (method === "CASH") return "Efectivo";
-    if (method === "TRANSFER") return "Transferencia";
-    if (method === "CARD") return "Tarjeta";
-    return method;
-  }
-
   return (
     <div className="p-6">
       <h1 className="text-2xl mb-4">Historial de ventas</h1>
 
       <div className="space-y-4">
         {groups.map((group) => (
-          <div key={group.id} className="border rounded p-4 shadow-sm">
+          <div
+            key={group.id}
+            className="border rounded-xl p-4 shadow-md bg-white"
+          >
             {/* HEADER */}
-
-            <div className="flex justify-between">
+            <div className="flex justify-between items-start">
               <div>
-                <div className="font-bold">Ticket #{group.id}</div>
-
-                <div className="text-sm text-gray-500">
-                  {new Date(group.createdAt).toLocaleString()}
+                <div className="font-bold text-lg text-gray-800">
+                  Ticket #{group.id}
                 </div>
 
-                <div className="text-sm">
-                  Cliente: {group.customerName || "—"}
+                <div className="text-black mt-1">
+                  <div>
+                    📅 Fecha: {new Date(group.createdAt).toLocaleDateString()}
+                  </div>
+                  <div>
+                    🕒 Hora: {new Date(group.createdAt).toLocaleTimeString()}
+                  </div>
                 </div>
-
-                <div className="text-sm">
-                  Pago: {paymentLabel(group.paymentMethod)}
-                </div>
-
-                <div className="text-sm">Caja: {group.cash?.id ?? "-"}</div>
               </div>
 
-              <div className="text-lg font-bold">${group.total}</div>
+              <div className="text-right">
+                <div className="text-xs font-semibold text-gray-500">TOTAL</div>
+                <div className="text-green-600 font-bold text-xl">
+                  ${group.total}
+                </div>
+              </div>
             </div>
+
+            {/* DIVISOR */}
+            <div className="my-3 border-t border-gray-200" />
+
+            {/* CLIENTE Y PAGO */}
+            <div className="text-sm space-y-1">
+              <div>
+                <span className="font-semibold text-gray-700">👤 Cliente:</span>{" "}
+                {group.customerName || "Consumidor final"}
+              </div>
+
+              <div>
+                <span className="font-semibold text-gray-700">
+                  💳 Método de pago:
+                </span>{" "}
+                {group.paymentMethod}
+              </div>
+            </div>
+
+            {/* DIVISOR */}
+            <div className="my-3 border-t border-gray-200" />
 
             {/* PRODUCTOS */}
+            <div>
+              <div className="text-sm font-semibold text-gray-700 mb-2">
+                PRODUCTOS:
+              </div>
 
-            <div className="mt-3 border-t pt-2 space-y-1">
-              {group.sales.map((sale: any) => (
-                <div key={sale.id}>
-                  {sale.product.name} x {sale.quantity}
-                </div>
-              ))}
+              <div className="space-y-1 text-sm">
+                {group.sales.map((sale: any) => (
+                  <div
+                    key={sale.id}
+                    className="flex justify-between border-b border-gray-100 pb-1"
+                  >
+                    <span className="text-gray-800">{sale.product.name}</span>
+                    <span className="text-gray-600">x{sale.quantity}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="text-sm mt-1">
-              👤 Cliente: {group.customerName || "Consumidor final"}
-            </div>
-
-            <div className="text-sm">💳 Metodo: {group.paymentMethod}</div>
-
-            <div className="mt-2 font-semibold text-green-800">Total: ${group.total}</div>
           </div>
         ))}
       </div>
