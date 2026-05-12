@@ -12,16 +12,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const validMethods = ["efectivo", "transferencia"];
+    const paymentMap: Record<string, "CASH" | "TRANSFER" > = {
+      efectivo: "CASH",
+      transferencia: "TRANSFER",
+    };
 
-    if (!validMethods.includes(paymentMethod)) {
+    const prismaPaymentMethod = paymentMap[paymentMethod];
+
+    if (!prismaPaymentMethod) {
       return NextResponse.json(
         { error: "Método de pago inválido" },
         { status: 400 }
       );
     }
 
-    // ✅ verificar caja abierta
+    // verificar caja abierta
     const cash = await prisma.cashRegister.findFirst({
       where: { closedAt: null },
       orderBy: { openedAt: "desc" },
@@ -37,17 +42,17 @@ export async function POST(req: Request) {
     const group = await prisma.saleGroup.create({
       data: {
         total,
-        customerName: customerName || null,
-        paymentMethod: paymentMethod || "CASH",
         cashId: cash.id,
         customerName: customerName || null,
-        paymentMethod,
+        paymentMethod: prismaPaymentMethod,
       },
     });
 
     return NextResponse.json(group);
 
   } catch (err) {
+    console.error(err);
+
     return NextResponse.json(
       { error: "Error creando ticket" },
       { status: 500 }
