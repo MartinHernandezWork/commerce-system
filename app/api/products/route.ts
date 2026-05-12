@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const {
       name,
       stock,
+      unitType,
       costPrice,
       salePrice,
       barcode,
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       data: {
         name,
         stock: Number(stock) || 0,
+        unitType,
         costPrice: Number(costPrice),
         salePrice: Number(salePrice),
         barcode: barcode || null,
@@ -107,28 +109,49 @@ export async function PUT(request: Request) {
       }
     }
 
+    console.log("BODY UPDATE:", rest);
+
     const updated = await prisma.product.update({
       where: { id: numId },
       data: {
-        ...rest,
-        stock: rest.stock !== undefined ? Number(rest.stock) : undefined,
+        name: rest.name,
+        description: rest.description || null,
+        barcode: rest.barcode || null,
+        sku: rest.sku || null,
+
+        stock:
+          rest.stock !== undefined
+            ? Number(rest.stock)
+            : undefined,
+
+        unitType:
+          rest.unitType !== undefined
+            ? rest.unitType
+            : undefined,
+
         costPrice:
           rest.costPrice !== undefined
             ? Number(rest.costPrice)
             : undefined,
+
         salePrice:
           rest.salePrice !== undefined
             ? Number(rest.salePrice)
             : undefined,
+
         supplierId:
-          rest.supplierId !== undefined && rest.supplierId !== ""
+          rest.supplierId &&
+            !isNaN(Number(rest.supplierId))
             ? Number(rest.supplierId)
-            : undefined,
+            : null,
+
         categoryId:
-          rest.categoryId !== undefined && rest.categoryId !== ""
+          rest.categoryId &&
+            !isNaN(Number(rest.categoryId))
             ? Number(rest.categoryId)
-            : undefined,
-        imageUrl: rest.imageUrl ?? null,
+            : null,
+
+        imageUrl: rest.imageUrl || null,
       },
     });
 

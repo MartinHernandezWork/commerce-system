@@ -71,6 +71,7 @@ export default function EditProduct(props: any) {
       barcode: e.target.barcode.value,
       sku: e.target.sku.value,
       stock: e.target.stock.value,
+      unitType: e.target.unitType.value,
       costPrice: e.target.costPrice.value,
       salePrice: e.target.salePrice.value,
       categoryId: e.target.categoryId.value || null,
@@ -141,16 +142,30 @@ export default function EditProduct(props: any) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block font-medium">Stock</label>
             <input
               name="stock"
               type="number"
+              step="0.01"
               defaultValue={product.stock}
               required
               className="border p-2 rounded w-full"
             />
+          </div>
+          <div>
+            <label className="block font-medium">Tipo de unidad</label>
+
+            <select
+              name="unitType"
+              defaultValue={product.unitType || "UNIT"}
+              className="border p-2 rounded w-full"
+            >
+              <option value="UNIT">Unidad</option>
+              <option value="G">Gramos</option>
+              <option value="KG">Kilos</option>
+            </select>
           </div>
 
           <div>

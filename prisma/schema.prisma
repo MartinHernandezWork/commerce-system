@@ -21,7 +21,9 @@ model Product {
   barcode     String? @unique
   description String?
 
-  stock Int @default(0) // existencias en unidades
+  stock Float @default(0) // existencias en unidades
+
+  unitType UnitType @default(UNIT)
 
   costPrice Float // precio de costo
   salePrice Float // precio de venta
@@ -29,10 +31,10 @@ model Product {
   imageUrl String? // imagen del producto
 
   supplierId Int?
-  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId],references: [id],onDelete: SetNull)
 
   categoryId Int?
-  category   Category? @relation(fields: [categoryId], references: [id])
+  category Category? @relation(fields: [categoryId],references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,7 +64,7 @@ model Sale {
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  quantity   Int
+  quantity   Float
   totalPrice Float
   createdAt  DateTime @default(now())
 
@@ -73,10 +75,10 @@ model Sale {
 model SaleGroup {
   id Int @id @default(autoincrement())
 
-  total         Float
-  createdAt     DateTime @default(now())
+  total     Float
+  createdAt DateTime @default(now())
 
-  customerName String?
+  customerName  String?
   paymentMethod PaymentMethod @default(CASH)
 
   sales Sale[]
@@ -103,7 +105,7 @@ model StockMovement {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   type     StockMovementType // PURCHASE, ADJUSTMENT, LOSS, etc.
-  quantity Int // positivo o negativo según movimiento
+  quantity Float // positivo o negativo según movimiento
   note     String?
 
   createdAt DateTime @default(now())
@@ -120,4 +122,10 @@ enum PaymentMethod {
   CASH
   TRANSFER
   CARD
+}
+
+enum UnitType {
+  UNIT
+  G
+  KG
 }

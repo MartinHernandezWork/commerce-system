@@ -17,34 +17,47 @@ export default function ProductsPage() {
     load();
   }, []);
 
+  function formatStock(stock: number, unitType: string) {
+    switch (unitType) {
+      case "G":
+        return `${stock} g`;
+
+      case "KG":
+        return `${stock} kg`;
+
+      case "UNIT":
+      default:
+        return `${stock} un`;
+    }
+  }
+
   async function deleteProduct(id: number) {
-  const confirm1 = confirm(
-    "⚠️ ATENCIÓN\n\nSi eliminás este producto se borrarán:\n- ventas registradas\n- movimientos de stock\n- historial\n\n¿Querés continuar?"
-  );
+    const confirm1 = confirm(
+      "⚠️ ATENCIÓN\n\nSi eliminás este producto se borrarán:\n- ventas registradas\n- movimientos de stock\n- historial\n\n¿Querés continuar?",
+    );
 
-  if (!confirm1) return;
+    if (!confirm1) return;
 
-  const confirmText = prompt(
-    "Escriba ELIMINAR para confirmar definitivamente"
-  );
+    const confirmText = prompt(
+      "Escriba ELIMINAR para confirmar definitivamente",
+    );
 
-  if (confirmText !== "ELIMINAR") {
-    alert("Eliminación cancelada");
-    return;
+    if (confirmText !== "ELIMINAR") {
+      alert("Eliminación cancelada");
+      return;
+    }
+
+    const res = await fetch("/api/products", {
+      method: "DELETE",
+      body: JSON.stringify({ id }),
+    });
+
+    if (res.ok) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } else {
+      alert("Error al eliminar producto");
+    }
   }
-
-  const res = await fetch("/api/products", {
-    method: "DELETE",
-    body: JSON.stringify({ id }),
-  });
-
-  if (res.ok) {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  } else {
-    alert("Error al eliminar producto");
-  }
-}
-
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -88,9 +101,13 @@ export default function ProductsPage() {
                   </td>
 
                   <td className="p-3 font-medium">{p.name}</td>
-                  <td className="p-3">{p.stock}</td>
-                  <td className="p-3 text-red-500">${p.costPrice.toFixed(2)}</td>
-                  <td className="p-3 text-green-600">${p.salePrice.toFixed(2)}</td>
+                  <td className="p-3">{formatStock(p.stock, p.unitType)}</td>
+                  <td className="p-3 text-red-500">
+                    ${p.costPrice.toFixed(2)}
+                  </td>
+                  <td className="p-3 text-green-600">
+                    ${p.salePrice.toFixed(2)}
+                  </td>
                   <td className="p-3">{p.category?.name ?? "-"}</td>
                   <td className="p-3">{p.supplier?.name ?? "-"}</td>
 
