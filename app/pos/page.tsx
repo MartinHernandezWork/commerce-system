@@ -125,7 +125,7 @@ export default function POSPage() {
 
       // RECETAS
       if (item.type === "recipe") {
-        await fetch("/api/recipe-sales", {
+        await fetch("/api/recipes/use", {
           method: "POST",
 
           headers: {
