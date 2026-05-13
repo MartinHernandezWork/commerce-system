@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,60 +7,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/schema.prisma
 model Product {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  sku         String? @unique
-  barcode     String? @unique
+  sku         String?  @unique
+  barcode     String?  @unique
   description String?
 
-  stock Float @default(0) // existencias en unidades
+  stock Float @default(0)
 
   unitType UnitType @default(UNIT)
 
-  costPrice Float // precio de costo
-  salePrice Float // precio de venta
+  costPrice Float
+  salePrice Float
 
-  imageUrl String? // imagen del producto
+  imageUrl String?
 
   supplierId Int?
-  supplier Supplier? @relation(fields: [supplierId],references: [id],onDelete: SetNull)
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   categoryId Int?
-  category Category? @relation(fields: [categoryId],references: [id], onDelete: SetNull)
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sales          Sale[]
-  stockMovements StockMovement[]
+  sales            Sale[]
+  stockMovements   StockMovement[]
+  recipeItems      RecipeItem[]
+}
+
+model Recipe {
+  id Int @id @default(autoincrement())
+
+  name String
+  price Float @default(0)
+  imageUrl String?
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  items RecipeItem[]
+}
+
+model RecipeItem {
+  id Int @id @default(autoincrement())
+
+  quantity Float
+  recipeId  Int
+  productId Int
+
+
+  recipe  Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Supplier {
-  id        Int       @id @default(autoincrement())
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  products  Product[]
-  createdAt DateTime  @default(now())
+  id Int @id @default(autoincrement())
+
+  name    String
+  phone   String?
+  email   String?
+  address String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
 }
 
 model Category {
-  id       Int       @id @default(autoincrement())
-  name     String
+  id Int @id @default(autoincrement())
+
+  name String
+
   products Product[]
+  recipes  Recipe[]
 }
 
 model Sale {
-  id        Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  quantity   Float
+  quantity Float
+
   totalPrice Float
-  createdAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
 
   groupId Int?
   group   SaleGroup? @relation(fields: [groupId], references: [id])
@@ -75,10 +105,12 @@ model Sale {
 model SaleGroup {
   id Int @id @default(autoincrement())
 
-  total     Float
+  total Float
+
   createdAt DateTime @default(now())
 
-  customerName  String?
+  customerName String?
+
   paymentMethod PaymentMethod @default(CASH)
 
   sales Sale[]
@@ -90,23 +122,28 @@ model SaleGroup {
 model CashRegister {
   id Int @id @default(autoincrement())
 
-  openedAt DateTime  @default(now())
+  openedAt DateTime @default(now())
+
   closedAt DateTime?
 
   initial Float
-  final   Float?
+
+  final Float?
 
   saleGroups SaleGroup[]
 }
 
 model StockMovement {
-  id        Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  type     StockMovementType // PURCHASE, ADJUSTMENT, LOSS, etc.
-  quantity Float // positivo o negativo según movimiento
-  note     String?
+  type StockMovementType
+
+  quantity Float
+
+  note String?
 
   createdAt DateTime @default(now())
 }
@@ -121,7 +158,6 @@ enum StockMovementType {
 enum PaymentMethod {
   CASH
   TRANSFER
-  CARD
 }
 
 enum UnitType {

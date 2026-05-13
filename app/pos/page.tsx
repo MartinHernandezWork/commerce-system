@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [recipes, setRecipes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -13,25 +14,31 @@ export default function POSPage() {
   const [cart, setCart] = useState<any[]>([]);
 
   async function loadData() {
-    const p = await fetch("/api/products").then((r) => r.json());
-    const c = await fetch("/api/categories").then((r) => r.json());
+    const [p, c, r] = await Promise.all([
+      fetch("/api/products").then((res) => res.json()),
+      fetch("/api/categories").then((res) => res.json()),
+      fetch("/api/recipes").then((res) => res.json()),
+    ]);
 
     setProducts(p);
     setCategories(c);
+    setRecipes(r);
   }
 
   useEffect(() => {
     loadData();
   }, []);
 
-  function getAvailableStock(productId: number, stock: number) {
-    const item = cart.find((p) => p.id === productId);
+  function getAvailableStock(posId: string, stock: number) {
+    const item = cart.find((p) => p.posId === posId);
+
     if (!item) return stock;
+
     return stock - item.qty;
   }
 
   function addToCart(product: any) {
-    const available = getAvailableStock(product.id, product.stock);
+    const available = getAvailableStock(product.posId, product.stock);
 
     if (available <= 0) {
       alert("No hay más stock disponible");
@@ -39,20 +46,31 @@ export default function POSPage() {
     }
 
     setCart((prev) => {
-      const found = prev.find((p) => p.id === product.id);
+      const found = prev.find((p) => p.posId === product.posId);
 
       if (found) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, qty: p.qty + 1 } : p
+          p.posId === product.posId
+            ? {
+                ...p,
+                qty: p.qty + 1,
+              }
+            : p,
         );
       }
 
-      return [...prev, { ...product, qty: 1 }];
+      return [
+        ...prev,
+        {
+          ...product,
+          qty: 1,
+        },
+      ];
     });
   }
 
-  function removeFromCart(id: number) {
-    setCart((prev) => prev.filter((p) => p.id !== id));
+  function removeFromCart(posId: string) {
+    setCart((prev) => prev.filter((p) => p.posId !== posId));
   }
 
   async function finalizeSale() {
@@ -88,14 +106,39 @@ export default function POSPage() {
     // 2️⃣ crear ventas
 
     for (const item of cart) {
-      await fetch("/api/sales", {
-        method: "POST",
-        body: JSON.stringify({
-          productId: item.id,
-          quantity: item.qty,
-          groupId,
-        }),
-      });
+      // PRODUCTOS
+      if (item.type === "product") {
+        await fetch("/api/sales", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            productId: item.id,
+            quantity: item.qty,
+            groupId,
+          }),
+        });
+      }
+
+      // RECETAS
+      if (item.type === "recipe") {
+        await fetch("/api/recipe-sales", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            recipeId: item.id,
+            quantity: item.qty,
+            groupId,
+          }),
+        });
+      }
     }
 
     alert("Venta registrada ✅");
@@ -107,7 +150,33 @@ export default function POSPage() {
     await loadData();
   }
 
-  const filteredProducts = products.filter((p) => {
+  const posItems = [
+    // productos
+    ...products.map((product) => ({
+      ...product,
+
+      type: "product",
+
+      posId: `product-${product.id}`,
+    })),
+
+    // recetas
+    ...recipes.map((recipe) => ({
+      ...recipe,
+
+      type: "recipe",
+
+      posId: `recipe-${recipe.id}`,
+
+      salePrice: recipe.price,
+
+      imageUrl: "/recipe.png",
+
+      stock: 9999,
+    })),
+  ];
+
+  const filteredProducts = posItems.filter((p) => {
     const matchCategory =
       selectedCategory === null || p.categoryId === selectedCategory;
 
@@ -161,11 +230,11 @@ export default function POSPage() {
         {/* GRILLA DE PRODUCTOS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {filteredProducts.map((product) => {
-            const available = getAvailableStock(product.id, product.stock);
+            const available = getAvailableStock(product.posId, product.stock);
 
             return (
               <div
-                key={product.id}
+                key={product.posId}
                 onClick={() => available > 0 && addToCart(product)}
                 className={`border rounded-lg p-2 shadow-sm
         ${available > 0 ? "cursor-pointer hover:shadow-md" : "opacity-40"}
@@ -179,6 +248,12 @@ export default function POSPage() {
                 <div className="mt-2 text-center font-medium">
                   {product.name}
                 </div>
+
+                {product.type === "recipe" && (
+                  <div className="text-xs text-orange-500 text-center">
+                    Receta
+                  </div>
+                )}
 
                 <div className="text-center text-sm text-green-500">
                   ${product.salePrice}
@@ -204,18 +279,21 @@ export default function POSPage() {
 
           {cart.map((item) => (
             <div
-              key={item.id}
+              key={item.posId}
               className="border rounded p-2 flex justify-between"
             >
               <div>
                 <div className="font-medium">{item.name}</div>
+                {item.type === "recipe" && (
+                  <div className="text-xs text-orange-500">Receta</div>
+                )}
                 <div className="text-sm text-gray-600">
                   {item.qty} x ${item.salePrice}
                 </div>
               </div>
 
               <button
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => removeFromCart(item.posId)}
                 className="text-red-600 font-bold cursor-pointer"
               >
                 ❌

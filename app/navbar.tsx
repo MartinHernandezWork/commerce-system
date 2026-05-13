@@ -156,6 +156,13 @@ export default function Navbar() {
               >
                 Productos
               </Link>
+              <Link
+                href="/recipes"
+                onClick={closeMenu}
+                className="block px-3 py-2 hover:rounded-md hover:bg-gray-200 cursor-pointer"
+              >
+                Recetas
+              </Link>
 
               <Link
                 href="/categories"
