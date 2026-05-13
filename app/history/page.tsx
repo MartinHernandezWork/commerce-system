@@ -64,7 +64,11 @@ export default function HistoryPage() {
                 <span className="font-semibold text-gray-700">
                   💳 Método de pago:
                 </span>{" "}
-                {group.paymentMethod}
+                {group.paymentMethod === "CASH"
+                  ? "Efectivo"
+                  : group.paymentMethod === "TRANSFER"
+                    ? "Transferencia"
+                    : group.paymentMethod}
               </div>
             </div>
 
