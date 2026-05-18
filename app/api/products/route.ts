@@ -2,21 +2,32 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET → listar productos
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+
+    const onlyPOS = searchParams.get("pos");
+
     const products = await prisma.product.findMany({
+      where: onlyPOS === "true"
+        ? {
+            showInPOS: true,
+          }
+        : undefined,
+
       include: {
-        supplier: true,
         category: true,
+        supplier: true,
       },
     });
 
     return NextResponse.json(products);
   } catch (err) {
     console.error("GET /products error:", err);
+
     return NextResponse.json(
       { error: "Error cargando productos" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -37,6 +48,7 @@ export async function POST(request: Request) {
       description,
       supplierId,
       categoryId,
+      showInPOS,
       imageUrl,
     } = body;
 
@@ -49,7 +61,7 @@ export async function POST(request: Request) {
       if (existing) {
         return NextResponse.json(
           { error: `El código de barras "${barcode}" ya existe.` },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -66,6 +78,7 @@ export async function POST(request: Request) {
         description: description || null,
         supplierId: supplierId ? Number(supplierId) : null,
         categoryId: categoryId ? Number(categoryId) : null,
+        showInPOS,
         imageUrl: imageUrl || null,
       },
     });
@@ -75,7 +88,7 @@ export async function POST(request: Request) {
     console.error("POST /products error:", err);
     return NextResponse.json(
       { error: "Error al crear producto" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,10 +100,7 @@ export async function PUT(request: Request) {
     const { id, ...rest } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
     }
 
     const numId = Number(id);
@@ -104,7 +114,7 @@ export async function PUT(request: Request) {
       if (existing && existing.id !== numId) {
         return NextResponse.json(
           { error: `El código de barras "${rest.barcode}" ya existe.` },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -119,35 +129,25 @@ export async function PUT(request: Request) {
         barcode: rest.barcode || null,
         sku: rest.sku || null,
 
-        stock:
-          rest.stock !== undefined
-            ? Number(rest.stock)
-            : undefined,
+        stock: rest.stock !== undefined ? Number(rest.stock) : undefined,
 
-        unitType:
-          rest.unitType !== undefined
-            ? rest.unitType
-            : undefined,
+        unitType: rest.unitType !== undefined ? rest.unitType : undefined,
 
         costPrice:
-          rest.costPrice !== undefined
-            ? Number(rest.costPrice)
-            : undefined,
+          rest.costPrice !== undefined ? Number(rest.costPrice) : undefined,
 
         salePrice:
-          rest.salePrice !== undefined
-            ? Number(rest.salePrice)
-            : undefined,
+          rest.salePrice !== undefined ? Number(rest.salePrice) : undefined,
+
+        showInPOS: rest.showInPOS,
 
         supplierId:
-          rest.supplierId &&
-            !isNaN(Number(rest.supplierId))
+          rest.supplierId && !isNaN(Number(rest.supplierId))
             ? Number(rest.supplierId)
             : null,
 
         categoryId:
-          rest.categoryId &&
-            !isNaN(Number(rest.categoryId))
+          rest.categoryId && !isNaN(Number(rest.categoryId))
             ? Number(rest.categoryId)
             : null,
 
@@ -160,7 +160,7 @@ export async function PUT(request: Request) {
     console.error("PUT /products error:", err);
     return NextResponse.json(
       { error: "Error al actualizar producto" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -172,10 +172,7 @@ export async function DELETE(request: Request) {
     const { id } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
     }
 
     const deleted = await prisma.product.delete({
@@ -187,7 +184,7 @@ export async function DELETE(request: Request) {
     console.error("DELETE /products error:", err);
     return NextResponse.json(
       { error: "Error al eliminar producto" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

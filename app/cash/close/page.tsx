@@ -16,13 +16,10 @@ export default function CloseCashPage() {
     const data = await res.json();
 
     setLoading(false);
-
     if (!res.ok) {
       alert(data.error);
       return;
     }
-
-    setResult(data);
   }
 
   return (

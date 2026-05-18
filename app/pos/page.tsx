@@ -15,7 +15,7 @@ export default function POSPage() {
 
   async function loadData() {
     const [p, c, r] = await Promise.all([
-      fetch("/api/products").then((res) => res.json()),
+      fetch("/api/products?pos=true").then((res) => res.json()),
       fetch("/api/categories").then((res) => res.json()),
       fetch("/api/recipes").then((res) => res.json()),
     ]);

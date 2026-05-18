@@ -15,6 +15,7 @@ model Product {
   description String?
 
   stock Float @default(0)
+  showInPOS Boolean @default(true)
 
   unitType UnitType @default(UNIT)
 
