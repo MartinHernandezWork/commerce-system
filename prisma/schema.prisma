@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
-  sku         String?  @unique
-  barcode     String?  @unique
+  sku         String? @unique
+  barcode     String? @unique
   description String?
 
   stock Float @default(0)
+  showInPOS Boolean @default(true)
 
   unitType UnitType @default(UNIT)
 
@@ -32,16 +33,16 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sales            Sale[]
-  stockMovements   StockMovement[]
-  recipeItems      RecipeItem[]
+  sales          Sale[]
+  stockMovements StockMovement[]
+  recipeItems    RecipeItem[]
 }
 
 model Recipe {
   id Int @id @default(autoincrement())
 
-  name String
-  price Float @default(0)
+  name     String
+  price    Float   @default(0)
   imageUrl String?
 
   categoryId Int?
@@ -49,19 +50,33 @@ model Recipe {
 
   createdAt DateTime @default(now())
 
-  items RecipeItem[]
+  items       RecipeItem[]
+  recipeSales RecipeSale[]
 }
 
 model RecipeItem {
   id Int @id @default(autoincrement())
 
-  quantity Float
+  quantity  Float
   recipeId  Int
   productId Int
 
-
-  recipe  Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe  Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model RecipeSale {
+  id Int @id @default(autoincrement())
+
+  recipeId Int
+  recipe   Recipe @relation(fields: [recipeId], references: [id])
+
+  groupId Int
+  group   SaleGroup @relation(fields: [groupId], references: [id])
+
+  quantity Float
+
+  createdAt DateTime @default(now())
 }
 
 model Supplier {
@@ -115,8 +130,9 @@ model SaleGroup {
 
   sales Sale[]
 
-  cashId Int?
-  cash   CashRegister? @relation(fields: [cashId], references: [id])
+  cashId      Int?
+  cash        CashRegister? @relation(fields: [cashId], references: [id])
+  recipeSales RecipeSale[]
 }
 
 model CashRegister {

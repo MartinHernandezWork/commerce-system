@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       await tx.product.update({
         where: { id: productIdNum },
         data: {
-          stock: {
+          stock: {  
             decrement: quantityNum,
           },
         },

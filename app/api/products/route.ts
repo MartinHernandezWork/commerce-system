@@ -2,9 +2,20 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET → listar productos
-export async function GET() {
+export async function GET(request: Request) {
   try {
+
+    const { searchParams } = new URL(request.url);
+
+    const onlyPOS = searchParams.get("pos");
+
     const products = await prisma.product.findMany({
+      where: onlyPOS === "true"
+        ? {
+          showInPOS: true,
+        }
+        : undefined,
+
       include: {
         supplier: true,
         category: true,
@@ -37,6 +48,7 @@ export async function POST(request: Request) {
       description,
       supplierId,
       categoryId,
+      showInPOS,
       imageUrl,
     } = body;
 
@@ -66,6 +78,7 @@ export async function POST(request: Request) {
         description: description || null,
         supplierId: supplierId ? Number(supplierId) : null,
         categoryId: categoryId ? Number(categoryId) : null,
+        showInPOS,
         imageUrl: imageUrl || null,
       },
     });
@@ -138,6 +151,8 @@ export async function PUT(request: Request) {
           rest.salePrice !== undefined
             ? Number(rest.salePrice)
             : undefined,
+
+        showInPOS: rest.showInPOS,
 
         supplierId:
           rest.supplierId &&

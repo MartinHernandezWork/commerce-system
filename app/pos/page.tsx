@@ -13,9 +13,14 @@ export default function POSPage() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
 
+  // 🔥 MODAL
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [qty, setQty] = useState(1);
+
   async function loadData() {
     const [p, c, r] = await Promise.all([
-      fetch("/api/products").then((res) => res.json()),
+      fetch("/api/products?pos=true").then((res) => res.json()),
       fetch("/api/categories").then((res) => res.json()),
       fetch("/api/recipes").then((res) => res.json()),
     ]);
@@ -31,42 +36,48 @@ export default function POSPage() {
 
   function getAvailableStock(posId: string, stock: number) {
     const item = cart.find((p) => p.posId === posId);
-
     if (!item) return stock;
-
     return stock - item.qty;
   }
 
-  function addToCart(product: any) {
-    const available = getAvailableStock(product.posId, product.stock);
+  // 🔥 abrir modal en vez de agregar directo
+  function openModal(product: any) {
+    setSelectedItem(product);
+    setQty(1);
+    setModalOpen(true);
+  }
 
-    if (available <= 0) {
-      alert("No hay más stock disponible");
+  function confirmAdd() {
+    if (!selectedItem) return;
+
+    const available = getAvailableStock(
+      selectedItem.posId,
+      selectedItem.stock
+    );
+
+    if (qty <= 0) return;
+
+    if (qty > available) {
+      alert("Stock insuficiente");
       return;
     }
 
     setCart((prev) => {
-      const found = prev.find((p) => p.posId === product.posId);
+      const found = prev.find((p) => p.posId === selectedItem.posId);
 
       if (found) {
         return prev.map((p) =>
-          p.posId === product.posId
-            ? {
-                ...p,
-                qty: p.qty + 1,
-              }
-            : p,
+          p.posId === selectedItem.posId
+            ? { ...p, qty: p.qty + qty }
+            : p
         );
       }
 
-      return [
-        ...prev,
-        {
-          ...product,
-          qty: 1,
-        },
-      ];
+      return [...prev, { ...selectedItem, qty }];
     });
+
+    setModalOpen(false);
+    setSelectedItem(null);
   }
 
   function removeFromCart(posId: string) {
@@ -76,9 +87,10 @@ export default function POSPage() {
   async function finalizeSale() {
     if (cart.length === 0) return;
 
-    const total = cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0);
-
-    // 1️⃣ crear ticket (SaleGroup)
+    const total = cart.reduce(
+      (sum, p) => sum + p.salePrice * p.qty,
+      0
+    );
 
     const groupRes = await fetch("/api/sale-group/create", {
       method: "POST",
@@ -92,29 +104,17 @@ export default function POSPage() {
     const groupData = await groupRes.json();
 
     if (!groupRes.ok) {
-      if (groupData.error === "NO_CASH_OPEN") {
-        alert("⚠️ No hay caja abierta");
-        return;
-      }
-
       alert("Error creando ticket");
       return;
     }
 
     const groupId = groupData.id;
 
-    // 2️⃣ crear ventas
-
     for (const item of cart) {
-      // PRODUCTOS
       if (item.type === "product") {
         await fetch("/api/sales", {
           method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             productId: item.id,
             quantity: item.qty,
@@ -123,15 +123,10 @@ export default function POSPage() {
         });
       }
 
-      // RECETAS
       if (item.type === "recipe") {
         await fetch("/api/recipes/use", {
           method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             recipeId: item.id,
             quantity: item.qty,
@@ -141,37 +136,24 @@ export default function POSPage() {
       }
     }
 
-    alert("Venta registrada ✅");
-
     setCart([]);
     setCustomerName("");
     setPaymentMethod("efectivo");
-
     await loadData();
   }
 
   const posItems = [
-    // productos
-    ...products.map((product) => ({
-      ...product,
-
+    ...products.map((p) => ({
+      ...p,
       type: "product",
-
-      posId: `product-${product.id}`,
+      posId: `product-${p.id}`,
     })),
-
-    // recetas
-    ...recipes.map((recipe) => ({
-      ...recipe,
-
+    ...recipes.map((r) => ({
+      ...r,
       type: "recipe",
-
-      posId: `recipe-${recipe.id}`,
-
-      salePrice: recipe.price,
-
-      imageUrl: "/recipe.png",
-
+      posId: `recipe-${r.id}`,
+      salePrice: r.price,
+      imageUrl: "uploads/placeholder.jpg",
       stock: 9999,
     })),
   ];
@@ -189,63 +171,36 @@ export default function POSPage() {
 
   return (
     <div className="flex h-screen">
-      {/* IZQUIERDA: GRILLA */}
+
+      {/* IZQUIERDA */}
       <div className="flex-1 p-4 overflow-y-auto">
-        {/* Buscador */}
+
         <input
           className="border p-2 rounded w-full mb-4"
-          placeholder="Buscar producto por nombre o código..."
+          placeholder="Buscar producto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {/* Filtros por categoría */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-3 py-1 rounded border ${
-              selectedCategory === null
-                ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
-                : ""
-            }`}
-          >
-            Todas
-          </button>
-
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1 rounded border ${
-                selectedCategory === cat.id
-                  ? "bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
-                  : ""
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        {/* GRILLA DE PRODUCTOS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {filteredProducts.map((product) => {
-            const available = getAvailableStock(product.posId, product.stock);
+            const available = getAvailableStock(
+              product.posId,
+              product.stock
+            );
 
             return (
               <div
                 key={product.posId}
-                onClick={() => available > 0 && addToCart(product)}
-                className={`border rounded-lg p-2 shadow-sm
-        ${available > 0 ? "cursor-pointer hover:shadow-md" : "opacity-40"}
-      `}
+                onClick={() => available > 0 && openModal(product)}
+                className="border rounded-lg p-2 cursor-pointer hover:shadow-md"
               >
                 <img
-                  src={product.imageUrl ?? "/placeholder.png"}
+                  src={product.imageUrl ?? "uploads/placeholder.jpg"}
                   className="w-full h-32 object-cover rounded"
                 />
 
-                <div className="mt-2 text-center font-medium">
+                <div className="text-center font-medium mt-2">
                   {product.name}
                 </div>
 
@@ -255,7 +210,7 @@ export default function POSPage() {
                   </div>
                 )}
 
-                <div className="text-center text-sm text-green-500">
+                <div className="text-center text-green-600">
                   ${product.salePrice}
                 </div>
 
@@ -268,72 +223,94 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* DERECHA: CARRITO */}
+      {/* CARRITO */}
       <div className="w-80 border-l p-4 flex flex-col">
         <h2 className="text-xl font-semibold mb-4">Carrito</h2>
 
-        <div className="flex-1 overflow-y-auto space-y-3">
-          {cart.length === 0 && (
-            <p className="text-gray-500">No hay productos</p>
-          )}
-
+        <div className="flex-1 overflow-y-auto space-y-2">
           {cart.map((item) => (
             <div
               key={item.posId}
-              className="border rounded p-2 flex justify-between"
+              className="border p-2 flex justify-between"
             >
               <div>
-                <div className="font-medium">{item.name}</div>
-                {item.type === "recipe" && (
-                  <div className="text-xs text-orange-500">Receta</div>
-                )}
-                <div className="text-sm text-gray-600">
-                  {item.qty} x ${item.salePrice}
-                </div>
+                {item.name} x{item.qty}
               </div>
 
               <button
                 onClick={() => removeFromCart(item.posId)}
-                className="text-red-600 font-bold cursor-pointer"
+                className="text-red-600 cursor-pointer"
               >
                 ❌
               </button>
             </div>
           ))}
         </div>
-        <div className="mt-4 border-t pt-4 space-y-2">
-          <input
-            type="text"
-            placeholder="Nombre del cliente (opcional)"
-            className="border p-2 rounded w-full"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
 
-          <select
-            className="border p-2 rounded w-full"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          >
-            <option value="efectivo">💵 Efectivo </option>
-            <option value="transferencia">📲 Transferencia</option>
-          </select>
-        </div>
+        <input
+          className="border p-2 mb-2"
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          placeholder="Cliente"
+        />
 
-        <div className="mt-4 border-t pt-4">
-          <div className="text-lg font-semibold">
-            Total: ${cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0)}
-          </div>
+        <select
+          className="border p-2 mb-2"
+          value={paymentMethod}
+          onChange={(e) => setPaymentMethod(e.target.value)}
+        >
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+        </select>
 
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white w-full mt-3 py-2 rounded cursor-pointer"
-            onClick={finalizeSale}
-            disabled={cart.length === 0}
-          >
-            Finalizar venta
-          </button>
-        </div>
+        <button
+          onClick={finalizeSale}
+          className="bg-green-600 text-white py-2 rounded"
+        >
+          Finalizar venta
+        </button>
       </div>
+
+      {/* MODAL CANTIDAD */}
+      {modalOpen && selectedItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded w-80">
+            
+            <h2 className="font-bold mb-2">{selectedItem.name}</h2>
+
+            <img
+              src={selectedItem.imageUrl ?? "/uploads/placeholder.jpg"}
+              className="w-full h-32 object-cover mb-3 rounded"
+            />
+
+            <input
+              type="number"
+              className="border p-2 w-full mb-3"
+              value={qty}
+              min={1}
+              onChange={(e) => setQty(Number(e.target.value))}
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={confirmAdd}
+                className="bg-green-600 text-white flex-1 py-2 rounded"
+              >
+                Agregar
+              </button>
+
+              <button
+                onClick={() => setModalOpen(false)}
+                className="bg-gray-300 flex-1 py-2 rounded"
+              >
+                Cancelar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

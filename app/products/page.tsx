@@ -95,7 +95,7 @@ export default function ProductsPage() {
                 <tr key={p.id} className="border-b hover:bg-gray-50">
                   <td className="p-3">
                     <img
-                      src={p.imageUrl ?? "/placeholder.png"}
+                      src={p.imageUrl ?? "uploads/placeholder.jpg"}
                       className="w-16 h-16 object-cover rounded border"
                     />
                   </td>

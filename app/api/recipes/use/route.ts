@@ -5,9 +5,9 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const { recipeId, quantity } = body;
+        const { recipeId, quantity, groupId } = body;
 
-        if (!recipeId || !quantity) {
+        if (!recipeId || !quantity || !groupId) {
             return NextResponse.json(
                 { error: "Datos incompletos" },
                 { status: 400 }
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
 
         // descontar stock
         await prisma.$transaction(async (tx) => {
+            // 1. descontar stock de ingredientes
             for (const item of recipe.items) {
                 const required = item.quantity * quantity;
 
@@ -66,6 +67,17 @@ export async function POST(req: Request) {
                         quantity: -required,
                         type: "SALE",
                         note: `Venta receta ${recipe.name}`,
+                    },
+                });
+            }
+
+            // 2. registrar la venta de la receta (UNA SOLA VEZ)
+            if (groupId) {
+                await tx.recipeSale.create({
+                    data: {
+                        recipeId,
+                        groupId,
+                        quantity,
                     },
                 });
             }

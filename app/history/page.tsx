@@ -75,20 +75,34 @@ export default function HistoryPage() {
             {/* DIVISOR */}
             <div className="my-3 border-t border-gray-200" />
 
-            {/* PRODUCTOS */}
+            {/* ITEMS */}
             <div>
-              <div className="text-sm font-semibold text-gray-700 mb-2">
-                PRODUCTOS:
+              <div className="text-sm font-semibold text-red-700 mb-2">
+                Productos:
               </div>
 
               <div className="space-y-1 text-sm">
-                {group.sales.map((sale: any) => (
+                {/* 🛒 PRODUCTOS */}
+                {group.sales?.map((sale: any) => (
                   <div
-                    key={sale.id}
+                    key={`product-${sale.id}`}
                     className="flex justify-between border-b border-gray-100 pb-1"
                   >
-                    <span className="text-gray-800">{sale.product.name}</span>
+                    <span className="text-gray-600 font-bold">{sale.product.name}</span>
+
                     <span className="text-gray-600">x{sale.quantity}</span>
+                  </div>
+                ))}
+
+                {/* 🍽️ RECETAS */}
+                {group.recipeSales?.map((item: any) => (
+                  <div
+                    key={`recipe-${item.id}`}
+                    className="flex justify-between border-b border-gray-100 pb-1"
+                  >
+                    <span className="text-gray-600 font-bold">{item.recipe.name}</span>
+
+                    <span className="text-gray-600">x{item.quantity}</span>
                   </div>
                 ))}
               </div>
