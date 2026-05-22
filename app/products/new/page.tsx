@@ -53,6 +53,7 @@ export default function CreateProductPage() {
       salePrice: e.target.salePrice.value,
       categoryId: e.target.categoryId.value || null,
       supplierId: e.target.supplierId.value || null,
+      showInPOS: e.target.showInPOS.checked,
       imageUrl,
     };
 
@@ -193,6 +194,17 @@ export default function CreateProductPage() {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            name="showInPOS"
+            defaultChecked={true}
+            className="w-5 h-5"
+          />
+
+          <label className="font-medium">Mostrar producto a la venta</label>
         </div>
 
         {/* Imagen */}

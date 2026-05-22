@@ -227,6 +227,17 @@ export default function EditProduct(props: any) {
             </select>
           </div>
         </div>
+        
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            name="showInPOS"
+            defaultChecked={product.showInPOS}
+            className="w-5 h-5"
+          />
+
+          <label className="font-medium">Mostrar producto a la venta</label>
+        </div>
 
         <div className="flex items-center gap-3">
           <input
