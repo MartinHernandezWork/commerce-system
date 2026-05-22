@@ -9,6 +9,7 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
@@ -50,10 +51,7 @@ export default function POSPage() {
   function confirmAdd() {
     if (!selectedItem) return;
 
-    const available = getAvailableStock(
-      selectedItem.posId,
-      selectedItem.stock
-    );
+    const available = getAvailableStock(selectedItem.posId, selectedItem.stock);
 
     if (qty <= 0) return;
 
@@ -67,9 +65,7 @@ export default function POSPage() {
 
       if (found) {
         return prev.map((p) =>
-          p.posId === selectedItem.posId
-            ? { ...p, qty: p.qty + qty }
-            : p
+          p.posId === selectedItem.posId ? { ...p, qty: p.qty + qty } : p,
         );
       }
 
@@ -87,10 +83,7 @@ export default function POSPage() {
   async function finalizeSale() {
     if (cart.length === 0) return;
 
-    const total = cart.reduce(
-      (sum, p) => sum + p.salePrice * p.qty,
-      0
-    );
+    const total = cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0);
 
     const groupRes = await fetch("/api/sale-group/create", {
       method: "POST",
@@ -136,9 +129,21 @@ export default function POSPage() {
       }
     }
 
+    // 🔥 sonido
+    const audio = new Audio("/sounds/success.mp3");
+    audio.play();
+
+    // 🔥 popup
+    setShowSuccess(true);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 2000);
+
     setCart([]);
     setCustomerName("");
     setPaymentMethod("efectivo");
+
     await loadData();
   }
 
@@ -171,10 +176,8 @@ export default function POSPage() {
 
   return (
     <div className="flex h-screen">
-
       {/* IZQUIERDA */}
       <div className="flex-1 p-4 overflow-y-auto">
-
         <input
           className="border p-2 rounded w-full mb-4"
           placeholder="Buscar producto..."
@@ -184,10 +187,7 @@ export default function POSPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {filteredProducts.map((product) => {
-            const available = getAvailableStock(
-              product.posId,
-              product.stock
-            );
+            const available = getAvailableStock(product.posId, product.stock);
 
             return (
               <div
@@ -229,10 +229,7 @@ export default function POSPage() {
 
         <div className="flex-1 overflow-y-auto space-y-2">
           {cart.map((item) => (
-            <div
-              key={item.posId}
-              className="border p-2 flex justify-between"
-            >
+            <div key={item.posId} className="border p-2 flex justify-between">
               <div>
                 {item.name} x{item.qty}
               </div>
@@ -259,13 +256,13 @@ export default function POSPage() {
           value={paymentMethod}
           onChange={(e) => setPaymentMethod(e.target.value)}
         >
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
+          <option value="efectivo">💵 Efectivo</option>
+          <option value="transferencia">📲 Transferencia</option>
         </select>
 
         <button
           onClick={finalizeSale}
-          className="bg-green-600 text-white py-2 rounded"
+          className="bg-green-600 text-white py-2 rounded hover:bg-green-800 cursor-pointer"
         >
           Finalizar venta
         </button>
@@ -275,7 +272,6 @@ export default function POSPage() {
       {modalOpen && selectedItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <div className="bg-white p-6 rounded w-80">
-            
             <h2 className="font-bold mb-2">{selectedItem.name}</h2>
 
             <img
@@ -306,11 +302,14 @@ export default function POSPage() {
                 Cancelar
               </button>
             </div>
-
           </div>
         </div>
       )}
-
+      {showSuccess && (
+        <div className="fixed top-5 right-5 bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl z-50 animate-bounce">
+          ✅ ¡Listo! Venta realizada
+        </div>
+      )}
     </div>
   );
 }
