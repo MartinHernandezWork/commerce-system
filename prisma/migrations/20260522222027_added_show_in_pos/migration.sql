@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `product` ADD COLUMN `showInPOS` BOOLEAN NOT NULL DEFAULT true;
