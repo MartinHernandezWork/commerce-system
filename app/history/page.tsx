@@ -79,7 +79,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen rounded-3xl">
       <h1 className="text-2xl font-bold mb-4">Historial de ventas</h1>
 
       {/* FECHA */}

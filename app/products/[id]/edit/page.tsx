@@ -242,16 +242,6 @@ export default function EditProduct(props: any) {
         <div>
           <label className="block font-medium mb-2">Imagen del producto</label>
 
-          <label className="inline-block bg-blue-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-blue-600">
-            Elegir imagen
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => uploadImage(e.target.files?.[0]!)}
-            />
-          </label>
-
           {uploading && (
             <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
           )}
@@ -263,7 +253,17 @@ export default function EditProduct(props: any) {
               <span>Sin imagen</span>
             )}
           </div>
+          <label className="inline-block bg-blue-500 text-white px-4 py-2 mt-2 rounded cursor-pointer hover:bg-blue-600">
+            Elegir imagen
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadImage(e.target.files?.[0]!)}
+            />
+          </label>
         </div>
+        
 
         <button
           type="submit"

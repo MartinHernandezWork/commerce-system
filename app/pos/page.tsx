@@ -9,6 +9,7 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
+  const [cashReceived, setCashReceived] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -85,6 +86,12 @@ export default function POSPage() {
 
     const total = cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0);
 
+    // VALIDAR ANTES DE CREAR EL TICKET
+    if (paymentMethod === "efectivo" && Number(cashReceived) < total) {
+      alert("El dinero recibido es insuficiente");
+      return;
+    }
+
     const groupRes = await fetch("/api/sale-group/create", {
       method: "POST",
       body: JSON.stringify({
@@ -97,7 +104,7 @@ export default function POSPage() {
     const groupData = await groupRes.json();
 
     if (!groupRes.ok) {
-      alert("Error creando ticket");
+      alert("Error creando ticket, asegurate que la caja este abierta");
       return;
     }
 
@@ -143,6 +150,7 @@ export default function POSPage() {
     setCart([]);
     setCustomerName("");
     setPaymentMethod("efectivo");
+    setCashReceived("");
 
     await loadData();
   }
@@ -174,142 +182,239 @@ export default function POSPage() {
     return matchCategory && matchSearch;
   });
 
+  const total = cart.reduce((sum, item) => sum + item.salePrice * item.qty, 0);
+
+  const received = Number(cashReceived) || 0;
+
+  const change = received - total;
+
   return (
-    <div className="flex h-screen">
-      {/* IZQUIERDA */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <input
-          className="border p-2 rounded w-full mb-4"
-          placeholder="Buscar producto..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+  <div className="flex h-screen bg-slate-100 rounded-3xl">
+    {/* PRODUCTOS */}
+    <div className="flex-1 p-5 overflow-y-auto">
+      <input
+        className="w-full border border-slate-300 bg-white rounded-2xl p-3 mb-5 shadow-sm focus:ring-2 focus:ring-green-500 outline-none"
+        placeholder="🔍 Buscar producto..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {filteredProducts.map((product) => {
-            const available = getAvailableStock(product.posId, product.stock);
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {filteredProducts.map((product) => {
+          const available = getAvailableStock(
+            product.posId,
+            product.stock,
+          );
 
-            return (
-              <div
-                key={product.posId}
-                onClick={() => available > 0 && openModal(product)}
-                className="border rounded-lg p-2 cursor-pointer hover:shadow-md"
-              >
-                <img
-                  src={product.imageUrl ?? "uploads/placeholder.jpg"}
-                  className="w-full h-32 object-cover rounded"
-                />
+          return (
+            <div
+              key={product.posId}
+              onClick={() => available > 0 && openModal(product)}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer border"
+            >
+              <img
+                src={product.imageUrl ?? "/uploads/placeholder.jpg"}
+                className="w-full h-40 object-cover"
+              />
 
-                <div className="text-center font-medium mt-2">
+              <div className="p-3">
+                <div className="font-semibold text-center">
                   {product.name}
                 </div>
 
                 {product.type === "recipe" && (
-                  <div className="text-xs text-orange-500 text-center">
-                    Receta
+                  <div className="text-xs text-orange-500 text-center mt-1">
+                    🍽️ Receta
                   </div>
                 )}
 
-                <div className="text-center text-green-600">
+                <div className="text-center text-2xl font-bold text-green-600 mt-2">
                   ${product.salePrice}
                 </div>
 
-                <div className="text-center text-xs text-gray-500">
+                <div className="text-center text-xs text-gray-500 mt-2">
                   Stock: {available}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* CARRITO */}
+    <div className="w-[400px] bg-white border-l shadow-2xl p-5 flex flex-col">
+      <div className="mb-5">
+        <h2 className="text-2xl font-bold text-slate-800">
+          Carrito
+        </h2>
+
+        <p className="text-sm text-gray-500">
+          {cart.length} productos en el carrito
+        </p>
       </div>
 
-      {/* CARRITO */}
-      <div className="w-80 border-l p-4 flex flex-col">
-        <h2 className="text-xl font-semibold mb-4">Carrito</h2>
-
-        <div className="flex-1 overflow-y-auto space-y-2">
-          {cart.map((item) => (
-            <div key={item.posId} className="border p-2 flex justify-between">
-              <div>
+      <div className="flex-1 overflow-y-auto space-y-3">
+        {cart.map((item) => (
+          <div
+            key={item.posId}
+            className="bg-slate-50 rounded-xl p-3 flex justify-between items-center shadow-sm"
+          >
+            <div>
+              <div className="font-medium">
                 {item.name} x{item.qty}
               </div>
 
-              <button
-                onClick={() => removeFromCart(item.posId)}
-                className="text-red-600 cursor-pointer"
-              >
-                ❌
-              </button>
+              <div className="text-sm text-green-600 font-semibold">
+                ${(item.salePrice * item.qty).toLocaleString()}
+              </div>
             </div>
-          ))}
-        </div>
 
-        <input
-          className="border p-2 mb-2"
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          placeholder="Cliente"
-        />
-
-        <select
-          className="border p-2 mb-2"
-          value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value)}
-        >
-          <option value="efectivo">💵 Efectivo</option>
-          <option value="transferencia">📲 Transferencia</option>
-        </select>
-
-        <button
-          onClick={finalizeSale}
-          className="bg-green-600 text-white py-2 rounded hover:bg-green-800 cursor-pointer"
-        >
-          Finalizar venta
-        </button>
+            <button
+              onClick={() => removeFromCart(item.posId)}
+              className="text-red-500 hover:text-red-700 transition cursor-pointer"
+            >
+              ❌
+            </button>
+          </div>
+        ))}
       </div>
 
-      {/* MODAL CANTIDAD */}
-      {modalOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded w-80">
-            <h2 className="font-bold mb-2">{selectedItem.name}</h2>
+      {/* TOTAL */}
+      <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4 mt-4">
+        <div className="text-sm text-gray-500">
+          Total a cobrar
+        </div>
 
-            <img
-              src={selectedItem.imageUrl ?? "/uploads/placeholder.jpg"}
-              className="w-full h-32 object-cover mb-3 rounded"
-            />
+        <div className="text-4xl font-black text-green-600">
+          ${total.toLocaleString()}
+        </div>
+      </div>
 
-            <input
-              type="number"
-              className="border p-2 w-full mb-3"
-              value={qty}
-              min={1}
-              onChange={(e) => setQty(Number(e.target.value))}
-            />
+      {/* MÉTODO DE PAGO */}
+      <select
+        className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+        value={paymentMethod}
+        onChange={(e) => setPaymentMethod(e.target.value)}
+      >
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="transferencia">📲 Transferencia</option>
+      </select>
 
-            <div className="flex gap-2">
-              <button
-                onClick={confirmAdd}
-                className="bg-green-600 text-white flex-1 py-2 rounded"
+      {/* CLIENTE */}
+      <input
+        className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+        value={customerName}
+        onChange={(e) => setCustomerName(e.target.value)}
+        placeholder="👤 Nombre del cliente"
+      />
+
+      {/* EFECTIVO */}
+      {paymentMethod === "efectivo" && (
+        <>
+          <input
+            type="number"
+            className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+            value={cashReceived}
+            onChange={(e) => setCashReceived(e.target.value)}
+            placeholder="💵 Monto recibido"
+          />    
+        </>
+      )}
+
+      {/* CAMBIO */}
+      {paymentMethod === "efectivo" &&
+        cashReceived &&
+        total > 0 && (
+          <div className="bg-slate-50 border rounded-2xl p-4 mb-4 shadow-sm">
+            <div className="flex justify-between">
+              <span>Total</span>
+              <span className="font-bold">
+                ${total.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Recibido</span>
+              <span className="font-bold">
+                ${received.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="flex justify-between mt-2">
+              <span className="font-semibold">
+                {change < 0 ? "Faltan" : "Cambio"}
+              </span>
+
+              <span
+                className={`text-xl font-black ${
+                  change < 0
+                    ? "text-red-600"
+                    : "text-green-600"
+                }`}
               >
-                Agregar
-              </button>
-
-              <button
-                onClick={() => setModalOpen(false)}
-                className="bg-gray-300 flex-1 py-2 rounded"
-              >
-                Cancelar
-              </button>
+                ${Math.abs(change).toLocaleString()}
+              </span>
             </div>
           </div>
-        </div>
-      )}
-      {showSuccess && (
-        <div className="fixed top-5 right-5 bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl z-50 animate-bounce">
-          ✅ ¡Listo! Venta realizada
-        </div>
-      )}
+        )}
+
+      {/* BOTÓN */}
+      <button
+        onClick={finalizeSale}
+        className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+      >
+        Finalizar venta
+      </button>
     </div>
-  );
-}
+
+    {/* MODAL */}
+    {modalOpen && selectedItem && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-3xl w-96 shadow-2xl">
+          <h2 className="font-bold text-xl mb-3">
+            {selectedItem.name}
+          </h2>
+
+          <img
+            src={
+              selectedItem.imageUrl ??
+              "/uploads/placeholder.jpg"
+            }
+            className="w-full h-48 object-cover mb-4 rounded-2xl"
+          />
+
+          <input
+            type="number"
+            className="border rounded-xl p-3 w-full mb-4"
+            value={qty}
+            min={1}
+            onChange={(e) => setQty(Number(e.target.value))}
+          />
+
+          <div className="flex gap-2">
+            <button
+              onClick={confirmAdd}
+              className="bg-green-600 text-white flex-1 py-3 rounded-xl hover:bg-green-700"
+            >
+              Agregar
+            </button>
+
+            <button
+              onClick={() => setModalOpen(false)}
+              className="bg-gray-200 flex-1 py-3 rounded-xl hover:bg-gray-300"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showSuccess && (
+      <div className="fixed top-5 right-5 bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50">
+        ✅ ¡Venta realizada!
+      </div>
+    )}
+  </div>
+)};
