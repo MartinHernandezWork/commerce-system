@@ -57,7 +57,7 @@ export default function Navbar() {
       <nav className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-xl font-bold" onClick={closeMenu}>
-            PUNTO DE VENTA 🛒
+            Lo Del Donald
           </Link>
 
           {cashOpen !== null && (

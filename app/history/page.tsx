@@ -51,33 +51,6 @@ export default function HistoryPage() {
   const ticketPromedio =
     activeGroups.length > 0 ? totalFacturacion / activeGroups.length : 0;
 
-  async function cancelSale(id: number) {
-    const ok = confirm(
-      "¿Seguro que desea anular esta venta?\n\nEl stock será repuesto automáticamente.",
-    );
-
-    if (!ok) return;
-
-    try {
-      const res = await fetch(`/api/sale-group/${id}/cancel`, {
-        method: "POST",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || "Error al anular la venta");
-        return;
-      }
-
-      alert("Venta anulada correctamente");
-
-      load();
-    } catch {
-      alert("Error de conexión");
-    }
-  }
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen rounded-3xl">
       <h1 className="text-2xl font-bold mb-4">Historial de ventas</h1>
