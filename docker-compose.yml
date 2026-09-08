@@ -1,8 +1,10 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Built by .github/workflows/docker-publish.yml on every push to main and
+    # published to GHCR — the VPS only pulls it, it never builds it locally.
+    # The GHCR package must be public, or Dokploy needs registry credentials
+    # (a GitHub PAT with read:packages) configured to pull a private one.
+    image: ghcr.io/martinhernandezwork/commerce-system:latest
     restart: unless-stopped
     environment:
       DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
