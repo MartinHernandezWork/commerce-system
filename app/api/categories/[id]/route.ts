@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // PUT → editar categoría
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { name } = await req.json();
 
     if (!name) {
@@ -32,10 +32,10 @@ export async function PUT(
 // DELETE → eliminar categoría
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await prisma.category.delete({
       where: { id: Number(id) },
