@@ -1,12 +1,14 @@
+# Pulled from Amazon ECR Public's mirror of the official image, since anonymous
+# docker.io pulls from a VPS can hit Docker Hub's rate limit (429).
 # ---- deps: install dependencies ----
-FROM node:22-alpine AS deps
+FROM public.ecr.aws/docker/library/node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
 # ---- builder: generate prisma client and build the app ----
-FROM node:22-alpine AS builder
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -15,7 +17,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # ---- runner: minimal runtime image ----
-FROM node:22-alpine AS runner
+FROM public.ecr.aws/docker/library/node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 ENV NODE_ENV=production
