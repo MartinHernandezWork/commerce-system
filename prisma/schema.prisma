@@ -36,6 +36,8 @@ model Product {
   sales          Sale[]
   stockMovements StockMovement[]
   recipeItems    RecipeItem[]
+
+  @@map("product")
 }
 
 model Recipe {
@@ -52,6 +54,8 @@ model Recipe {
 
   items       RecipeItem[]
   recipeSales RecipeSale[]
+
+  @@map("recipe")
 }
 
 model RecipeItem {
@@ -63,6 +67,8 @@ model RecipeItem {
 
   recipe  Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("recipeitem")
 }
 
 model RecipeSale {
@@ -77,6 +83,8 @@ model RecipeSale {
   quantity Float
 
   createdAt DateTime @default(now())
+
+  @@map("recipesale")
 }
 
 model Supplier {
@@ -90,6 +98,8 @@ model Supplier {
   products Product[]
 
   createdAt DateTime @default(now())
+
+  @@map("supplier")
 }
 
 model Category {
@@ -99,6 +109,8 @@ model Category {
 
   products Product[]
   recipes  Recipe[]
+
+  @@map("category")
 }
 
 model Sale {
@@ -115,6 +127,8 @@ model Sale {
 
   groupId Int?
   group   SaleGroup? @relation(fields: [groupId], references: [id])
+
+  @@map("sale")
 }
 
 model SaleGroup {
@@ -133,6 +147,8 @@ model SaleGroup {
   cashId      Int?
   cash        CashRegister? @relation(fields: [cashId], references: [id])
   recipeSales RecipeSale[]
+
+  @@map("salegroup")
 }
 
 model CashRegister {
@@ -147,6 +163,8 @@ model CashRegister {
   final Float?
 
   saleGroups SaleGroup[]
+
+  @@map("cashregister")
 }
 
 model StockMovement {
@@ -162,6 +180,8 @@ model StockMovement {
   note String?
 
   createdAt DateTime @default(now())
+
+  @@map("stockmovement")
 }
 
 enum StockMovementType {

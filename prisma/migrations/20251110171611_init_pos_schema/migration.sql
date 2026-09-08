@@ -4,10 +4,10 @@
   - You are about to drop the column `pricePerKg` on the `product` table. All the data in the column will be lost.
   - You are about to drop the column `stockGrams` on the `product` table. All the data in the column will be lost.
   - You are about to drop the column `quantityGrams` on the `sale` table. All the data in the column will be lost.
-  - A unique constraint covering the columns `[sku]` on the table `Product` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `costPrice` to the `Product` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `salePrice` to the `Product` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `quantity` to the `Sale` table without a default value. This is not possible if the table is not empty.
+  - A unique constraint covering the columns `[sku]` on the table `product` will be added. If there are existing duplicate values, this will fail.
+  - Added the required column `costPrice` to the `product` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `salePrice` to the `product` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `quantity` to the `sale` table without a default value. This is not possible if the table is not empty.
 
 */
 -- AlterTable
@@ -25,7 +25,7 @@ ALTER TABLE `sale` DROP COLUMN `quantityGrams`,
     ADD COLUMN `quantity` INTEGER NOT NULL;
 
 -- CreateTable
-CREATE TABLE `Supplier` (
+CREATE TABLE `supplier` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NULL,
@@ -37,7 +37,7 @@ CREATE TABLE `Supplier` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `Category` (
+CREATE TABLE `category` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
 
@@ -45,7 +45,7 @@ CREATE TABLE `Category` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `StockMovement` (
+CREATE TABLE `stockmovement` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `productId` INTEGER NOT NULL,
     `type` ENUM('PURCHASE', 'SALE', 'ADJUSTMENT', 'LOSS') NOT NULL,
@@ -57,13 +57,13 @@ CREATE TABLE `StockMovement` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateIndex
-CREATE UNIQUE INDEX `Product_sku_key` ON `Product`(`sku`);
+CREATE UNIQUE INDEX `Product_sku_key` ON `product`(`sku`);
 
 -- AddForeignKey
-ALTER TABLE `Product` ADD CONSTRAINT `Product_supplierId_fkey` FOREIGN KEY (`supplierId`) REFERENCES `Supplier`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `product` ADD CONSTRAINT `Product_supplierId_fkey` FOREIGN KEY (`supplierId`) REFERENCES `supplier`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Product` ADD CONSTRAINT `Product_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `product` ADD CONSTRAINT `Product_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `StockMovement` ADD CONSTRAINT `StockMovement_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `stockmovement` ADD CONSTRAINT `StockMovement_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

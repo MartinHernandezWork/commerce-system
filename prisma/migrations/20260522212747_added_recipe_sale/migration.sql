@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE `RecipeSale` (
+CREATE TABLE `recipesale` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `recipeId` INTEGER NOT NULL,
     `groupId` INTEGER NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE `RecipeSale` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `RecipeSale` ADD CONSTRAINT `RecipeSale_recipeId_fkey` FOREIGN KEY (`recipeId`) REFERENCES `Recipe`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `recipesale` ADD CONSTRAINT `RecipeSale_recipeId_fkey` FOREIGN KEY (`recipeId`) REFERENCES `recipe`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `RecipeSale` ADD CONSTRAINT `RecipeSale_groupId_fkey` FOREIGN KEY (`groupId`) REFERENCES `SaleGroup`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `recipesale` ADD CONSTRAINT `RecipeSale_groupId_fkey` FOREIGN KEY (`groupId`) REFERENCES `salegroup`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

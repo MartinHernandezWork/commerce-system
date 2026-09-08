@@ -5,9 +5,9 @@
   - You are about to drop the column `description` on the `product` table. All the data in the column will be lost.
   - You are about to drop the column `price` on the `product` table. All the data in the column will be lost.
   - You are about to drop the column `stock` on the `product` table. All the data in the column will be lost.
-  - Added the required column `pricePerKg` to the `Product` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `stockGrams` to the `Product` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `updatedAt` to the `Product` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `pricePerKg` to the `product` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `stockGrams` to the `product` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `updatedAt` to the `product` table without a default value. This is not possible if the table is not empty.
 
 */
 -- DropIndex
@@ -23,7 +23,7 @@ ALTER TABLE `product` DROP COLUMN `barcode`,
     ADD COLUMN `updatedAt` DATETIME(3) NOT NULL;
 
 -- CreateTable
-CREATE TABLE `Sale` (
+CREATE TABLE `sale` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `productId` INTEGER NOT NULL,
     `quantityGrams` INTEGER NOT NULL,
@@ -34,4 +34,4 @@ CREATE TABLE `Sale` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `Sale` ADD CONSTRAINT `Sale_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `sale` ADD CONSTRAINT `Sale_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
