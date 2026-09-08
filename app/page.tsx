@@ -9,7 +9,7 @@ export default function HomePage() {
       </h2>
 
       <p className="mb-6 text-2xl font-normal">
-        Administra tus productos con este sistema 📦✅
+        Bienvenido a Lo Del Donald!
       </p>
     </div>
   );
