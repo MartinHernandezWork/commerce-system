@@ -5,7 +5,7 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ resolver Promise
+  const { id } = await context.params;
   const productId = Number(id);
 
   if (isNaN(productId)) {

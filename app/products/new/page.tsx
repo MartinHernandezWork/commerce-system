@@ -75,12 +75,6 @@ export default function CreateProductPage() {
   async function handleSubmit(e: any) {
     e.preventDefault();
 
-    // La imagen es obligatoria
-    if (!imageUrl) {
-      alert("Debes subir una imagen del producto antes de continuar.");
-      return;
-    }
-
     // No permitir crear mientras se está subiendo
     if (uploading) {
       alert("Espera a que termine de procesarse la imagen.");

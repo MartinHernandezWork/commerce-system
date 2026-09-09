@@ -9,11 +9,15 @@ export async function GET(request: Request) {
     const onlyPOS = searchParams.get("pos");
 
     const products = await prisma.product.findMany({
-      where: onlyPOS === "true"
-        ? {
-          showInPOS: true,
-        }
-        : undefined,
+      where: {
+        deletedAt: null,
+
+        ...(onlyPOS === "true"
+          ? {
+              showInPOS: true,
+            }
+          : {}),
+      },
 
       include: {
         category: true,
@@ -165,7 +169,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE → eliminar producto
+// DELETE → soft delete de producto
 export async function DELETE(request: Request) {
   try {
     const body = await request.json();
@@ -175,13 +179,19 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID requerido" }, { status: 400 });
     }
 
-    const deleted = await prisma.product.delete({
-      where: { id: Number(id) },
+    const deleted = await prisma.product.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        deletedAt: new Date(),
+      },
     });
 
     return NextResponse.json(deleted);
   } catch (err) {
     console.error("DELETE /products error:", err);
+
     return NextResponse.json(
       { error: "Error al eliminar producto" },
       { status: 500 },

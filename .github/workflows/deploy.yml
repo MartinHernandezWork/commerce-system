@@ -21,5 +21,6 @@ jobs:
             cd /var/www/commerce-system
             git pull origin Donald-Commerce-System
             npm install
+            npx prisma migrate deploy
             npm run build
             pm2 restart commerce-system

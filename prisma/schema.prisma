@@ -8,21 +8,19 @@ datasource db {
 }
 
 model Product {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  sku         String? @unique
-  barcode     String? @unique
+  sku         String?  @unique
+  barcode     String?  @unique
   description String?
+  stock       Float    @default(0)
+  showInPOS   Boolean  @default(true)
+  unitType    UnitType @default(UNIT)
+  costPrice   Float
+  salePrice   Float
+  imageUrl    String?
 
-  stock Float @default(0)
-  showInPOS Boolean @default(true)
-
-  unitType UnitType @default(UNIT)
-
-  costPrice Float
-  salePrice Float
-
-  imageUrl String?
+  deletedAt DateTime?
 
   supplierId Int?
   supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
@@ -41,11 +39,12 @@ model Product {
 }
 
 model Recipe {
-  id Int @id @default(autoincrement())
-
+  id       Int     @id @default(autoincrement())
   name     String
   price    Float   @default(0)
   imageUrl String?
+
+  deletedAt DateTime?
 
   categoryId Int?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -72,17 +71,18 @@ model RecipeItem {
 }
 
 model RecipeSale {
-  id Int @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
+  recipeId   Int
+  recipe     Recipe   @relation(fields: [recipeId], references: [id])
 
-  recipeId Int
-  recipe   Recipe @relation(fields: [recipeId], references: [id])
+  recipeName String
+  unitPrice  Float
 
-  groupId Int
-  group   SaleGroup @relation(fields: [groupId], references: [id])
+  groupId    Int
+  group      SaleGroup @relation(fields: [groupId], references: [id])
 
-  quantity Float
-
-  createdAt DateTime @default(now())
+  quantity   Float
+  createdAt  DateTime @default(now())
 
   @@map("recipesale")
 }
@@ -114,19 +114,19 @@ model Category {
 }
 
 model Sale {
-  id Int @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  productId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productName String
+  unitPrice   Float
 
-  quantity Float
+  quantity    Float
+  totalPrice  Float
+  createdAt   DateTime  @default(now())
 
-  totalPrice Float
-
-  createdAt DateTime @default(now())
-
-  groupId Int?
-  group   SaleGroup? @relation(fields: [groupId], references: [id])
+  groupId     Int?
+  group       SaleGroup? @relation(fields: [groupId], references: [id])
 
   @@map("sale")
 }

@@ -9,8 +9,11 @@ export async function GET(
     try {
         const { id } = await context.params;
 
-        const recipe = await prisma.recipe.findUnique({
-            where: { id: Number(id) },
+        const recipe = await prisma.recipe.findFirst({
+            where: {
+                id: Number(id),
+                deletedAt: null,
+            },
             include: {
                 items: {
                     include: {
@@ -38,16 +41,38 @@ export async function GET(
     }
 }
 
-export async function PUT(req: Request, context: any) {
+// PUT actualizar receta
+export async function PUT(
+    req: Request,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
         const { id } = await context.params;
         const body = await req.json();
 
         const { name, price, items } = body;
+        const recipeId = Number(id);
+
+        // verificar que la receta exista y esté activa
+        const existingRecipe = await prisma.recipe.findFirst({
+            where: {
+                id: recipeId,
+                deletedAt: null,
+            },
+        });
+
+        if (!existingRecipe) {
+            return NextResponse.json(
+                { error: "Receta no encontrada" },
+                { status: 404 }
+            );
+        }
 
         // actualizar receta base
         const recipe = await prisma.recipe.update({
-            where: { id: Number(id) },
+            where: {
+                id: recipeId,
+            },
             data: {
                 name,
                 price,
@@ -57,20 +82,23 @@ export async function PUT(req: Request, context: any) {
         // borrar ingredientes anteriores
         await prisma.recipeItem.deleteMany({
             where: {
-                recipeId: Number(id),
+                recipeId,
             },
         });
 
         // crear nuevos ingredientes
         await prisma.recipeItem.createMany({
             data: items.map((item: any) => ({
-                recipeId: Number(id),
+                recipeId,
                 productId: item.productId,
                 quantity: item.quantity,
             })),
         });
 
-        return NextResponse.json({ success: true, recipe });
+        return NextResponse.json({
+            success: true,
+            recipe,
+        });
 
     } catch (error) {
         console.error(error);
@@ -82,7 +110,7 @@ export async function PUT(req: Request, context: any) {
     }
 }
 
-// DELETE receta
+// DELETE receta → Soft Delete
 export async function DELETE(
     req: Request,
     context: { params: Promise<{ id: string }> }
@@ -90,11 +118,34 @@ export async function DELETE(
     try {
         const { id } = await context.params;
 
-        await prisma.recipe.delete({
-            where: { id: Number(id) },
+        const recipe = await prisma.recipe.findFirst({
+            where: {
+                id: Number(id),
+                deletedAt: null,
+            },
         });
 
-        return NextResponse.json({ success: true });
+        if (!recipe) {
+            return NextResponse.json(
+                { error: "Receta no encontrada" },
+                { status: 404 }
+            );
+        }
+
+        const deleted = await prisma.recipe.update({
+            where: {
+                id: Number(id),
+            },
+            data: {
+                deletedAt: new Date(),
+            },
+        });
+
+        return NextResponse.json({
+            success: true,
+            recipe: deleted,
+        });
+
     } catch (error) {
         console.error(error);
 

@@ -190,7 +190,7 @@ export default function HistoryPage() {
                     className="flex justify-between border-b border-gray-100 pb-1"
                   >
                     <span className="text-gray-600 font-bold">
-                      {sale.product.name}
+                      {sale.productName}
                     </span>
 
                     <span className="text-gray-600">x{sale.quantity}</span>
@@ -203,7 +203,7 @@ export default function HistoryPage() {
                     className="flex justify-between border-b border-gray-100 pb-1"
                   >
                     <span className="text-gray-600 font-bold">
-                      {item.recipe.name}
+                      {item.recipeName}
                     </span>
 
                     <span className="text-gray-600">x{item.quantity}</span>

@@ -10,14 +10,10 @@ export async function POST(req: Request) {
     const quantityNum = Number(quantity);
 
     if (isNaN(productIdNum) || isNaN(quantityNum) || quantityNum <= 0) {
-      return NextResponse.json(
-        { error: "Datos inválidos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
     }
 
     const sale = await prisma.$transaction(async (tx) => {
-
       const product = await tx.product.findUnique({
         where: { id: productIdNum },
       });
@@ -43,6 +39,10 @@ export async function POST(req: Request) {
           quantity: quantityNum,
           totalPrice,
           groupId: groupId ?? null,
+
+          // Snapshot histórico
+          productName: product.name,
+          unitPrice: product.salePrice,
         },
       });
 
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       await tx.product.update({
         where: { id: productIdNum },
         data: {
-          stock: {  
+          stock: {
             decrement: quantityNum,
           },
         },
@@ -70,35 +70,27 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(sale);
-
   } catch (error: any) {
-
     if (error.message === "NOT_FOUND") {
       return NextResponse.json(
         { error: "Producto no encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (error.message === "NO_STOCK") {
-      return NextResponse.json(
-        { error: "Sin stock" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Sin stock" }, { status: 400 });
     }
 
     if (error.message === "INSUFFICIENT_STOCK") {
       return NextResponse.json(
         { error: "Stock insuficiente" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     console.error(error);
 
-    return NextResponse.json(
-      { error: "Error interno" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
