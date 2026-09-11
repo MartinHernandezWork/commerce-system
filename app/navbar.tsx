@@ -34,6 +34,18 @@ export default function Navbar() {
     setOpenMenu(null);
   }
 
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  }
+
   function menuClass(name: string) {
     return `
       absolute mt-2 w-44 rounded shadow bg-white text-black
@@ -181,6 +193,12 @@ export default function Navbar() {
               </Link>
             </div>
           </div>
+          <button
+            onClick={logout}
+            className="hover:cursor-pointer"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </nav>
     </header>
