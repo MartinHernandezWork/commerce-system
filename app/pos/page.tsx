@@ -8,10 +8,14 @@ export default function POSPage() {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+
   const [customerName, setCustomerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [cashReceived, setCashReceived] = useState("");
+
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<any[]>([]);
@@ -36,9 +40,23 @@ export default function POSPage() {
     loadData();
   }, []);
 
+  function showErrorToast(message: string) {
+    setErrorMessage(message);
+    setShowError(true);
+
+    const audio = new Audio("/sounds/error.mp3");
+    audio.play();
+
+    setTimeout(() => {
+      setShowError(false);
+    }, 2500);
+  }
+
   function getAvailableStock(posId: string, stock: number) {
     const item = cart.find((p) => p.posId === posId);
+
     if (!item) return stock;
+
     return stock - item.qty;
   }
 
@@ -56,7 +74,7 @@ export default function POSPage() {
     if (qty <= 0) return;
 
     if (qty > available) {
-      alert("Stock insuficiente");
+      showErrorToast("Stock insuficiente.");
       return;
     }
 
@@ -85,9 +103,9 @@ export default function POSPage() {
 
     const total = cart.reduce((sum, p) => sum + p.salePrice * p.qty, 0);
 
-    // VALIDAR ANTES DE CREAR EL TICKET
+    // VALIDAR DINERO RECIBIDO
     if (paymentMethod === "efectivo" && Number(cashReceived) < total) {
-      alert("El dinero recibido es insuficiente");
+      showErrorToast("El dinero recibido es insuficiente.");
       return;
     }
 
@@ -102,8 +120,12 @@ export default function POSPage() {
 
     const groupData = await groupRes.json();
 
+    // VALIDAR CAJA ABIERTA
     if (!groupRes.ok) {
-      alert("Error creando ticket, asegurate que la caja este abierta");
+      showErrorToast(
+        "No se puede realizar la venta.\nAsegurate de que la caja esté abierta.",
+      );
+
       return;
     }
 
@@ -139,11 +161,11 @@ export default function POSPage() {
       }
     }
 
-    // 🔥 sonido
+    // SONIDO DE ÉXITO
     const audio = new Audio("/sounds/success.mp3");
     audio.play();
 
-    // 🔥 popup
+    // POPUP DE ÉXITO
     setShowSuccess(true);
 
     setTimeout(() => {
@@ -164,12 +186,13 @@ export default function POSPage() {
       type: "product",
       posId: `product-${p.id}`,
     })),
+
     ...recipes.map((r) => ({
       ...r,
       type: "recipe",
       posId: `recipe-${r.id}`,
       salePrice: r.price,
-      imageUrl: "/uploads/placeholder.jpg",
+      imageUrl: r.imageUrl || "/uploads/placeholder.jpg",
       stock: 9999,
     })),
   ];
@@ -188,25 +211,25 @@ export default function POSPage() {
   const total = cart.reduce((sum, item) => sum + item.salePrice * item.qty, 0);
 
   const received = Number(cashReceived) || 0;
-
   const change = received - total;
 
   return (
-    <div className="flex h-screen bg-green-100 rounded-3xl">
+    <div className="min-h-full lg:h-full bg-green-100 rounded-3xl flex flex-col lg:flex-row overflow-hidden">
       {/* PRODUCTOS */}
-      <div className="flex-1 p-5 overflow-y-auto">
+      <div className="flex-1 min-w-0 p-4 sm:p-5 overflow-y-auto">
+        {/* BUSCADOR */}
         <input
-          className="w-full border border-slate-300 bg-white rounded-2xl p-3 mb-5 shadow-sm focus:ring-2 focus:ring-green-500 outline-none"
+          className="w-full border border-slate-300 bg-white rounded-2xl p-3.5 sm:p-3 mb-4 sm:mb-5 shadow-sm focus:ring-2 focus:ring-green-500 outline-none"
           placeholder="🔍 Buscar producto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         {/* CATEGORÍAS */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-thin">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition ${
+            className={`px-4 py-2.5 rounded-xl font-semibold whitespace-nowrap transition cursor-pointer ${
               selectedCategory === null
                 ? "bg-green-600 text-white"
                 : "bg-white text-gray-700 border hover:bg-gray-100"
@@ -219,7 +242,7 @@ export default function POSPage() {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition ${
+              className={`px-4 py-2.5 rounded-xl font-semibold whitespace-nowrap transition cursor-pointer ${
                 selectedCategory === category.id
                   ? "bg-green-600 text-white"
                   : "bg-white text-gray-700 border hover:bg-gray-100"
@@ -230,7 +253,8 @@ export default function POSPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* PRODUCTOS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {filteredProducts.map((product) => {
             const available = getAvailableStock(product.posId, product.stock);
 
@@ -238,32 +262,41 @@ export default function POSPage() {
               <div
                 key={product.posId}
                 onClick={() => available > 0 && openModal(product)}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer border"
+                className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all duration-200 ${
+                  available > 0
+                    ? "hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                    : "opacity-50 cursor-not-allowed"
+                }`}
               >
-                <div className="w-30 h-30 mx-auto border flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.name}
-                      width={160}
-                      height={160}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span>Sin imagen</span>
-                  )}
+                {/* IMAGEN */}
+                <div className="aspect-square w-full flex items-center justify-center  overflow-hidden">
+                  <Image
+                    src={product.imageUrl || "/uploads/placeholder.jpg"}
+                    alt={product.name}
+                    unoptimized
+                    width={160}
+                    height={160}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <div className="p-3">
-                  <div className="font-semibold text-center">
+                {/* INFORMACIÓN */}
+                <div className="p-2.5 sm:p-3">
+                  <div className="font-semibold text-center text-sm sm:text-base line-clamp-2 min-h-[40px]">
                     {product.name}
                   </div>
 
-                  <div className="text-center text-2xl font-bold text-green-600 mt-2">
-                    ${product.salePrice}
+                  <div className="text-center text-xl sm:text-2xl font-bold text-green-600 mt-2">
+                    ${Number(product.salePrice).toLocaleString()}
                   </div>
 
-                  <div className="text-center text-xs text-gray-500 mt-2">
+                  <div
+                    className={`text-center text-xs mt-2 ${
+                      available <= 0
+                        ? "text-red-600 font-semibold"
+                        : "text-gray-500"
+                    }`}
+                  >
                     Stock: {available}
                   </div>
                 </div>
@@ -271,66 +304,89 @@ export default function POSPage() {
             );
           })}
         </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="bg-white rounded-2xl border p-8 text-center text-gray-500 mt-4">
+            No se encontraron productos.
+          </div>
+        )}
       </div>
 
       {/* CARRITO */}
-      <div className="w-[400px] bg-white border-l shadow-2xl p-5 flex flex-col">
-        <div className="mb-5">
+      <div className="w-full lg:w-[380px] xl:w-[400px] bg-white border-t lg:border-t-0 lg:border-l shadow-2xl p-4 sm:p-5 flex flex-col lg:h-full">
+        {/* HEADER */}
+        <div className="mb-4 sm:mb-5">
           <h2 className="text-2xl font-bold text-slate-800">Carrito</h2>
 
           <p className="text-sm text-gray-500">
-            {cart.length} productos en el carrito
+            {cart.length}{" "}
+            {cart.length === 1
+              ? "producto en el carrito"
+              : "productos en el carrito"}
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3">
+        {/* PRODUCTOS DEL CARRITO */}
+        <div className="lg:flex-1 lg:overflow-y-auto space-y-3 max-h-[350px] lg:max-h-none overflow-y-auto">
+          {cart.length === 0 && (
+            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center text-gray-400">
+              <div className="text-3xl mb-2">🛒</div>
+              <div className="font-medium">El carrito está vacío</div>
+              <div className="text-sm mt-1">
+                Seleccioná un producto para comenzar
+              </div>
+            </div>
+          )}
+
           {cart.map((item) => (
             <div
               key={item.posId}
-              className="bg-slate-50 rounded-xl p-3 flex justify-between items-center shadow-sm"
+              className="bg-slate-50 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm"
             >
-              <div>
-                <div className="font-medium">
+              <div className="min-w-0">
+                <div className="font-medium text-gray-800 break-words">
                   {item.name} x{item.qty}
                 </div>
 
-                <div className="text-sm text-green-600 font-semibold">
+                <div className="text-sm text-green-600 font-semibold mt-1">
                   ${(item.salePrice * item.qty).toLocaleString()}
                 </div>
               </div>
 
               <button
                 onClick={() => removeFromCart(item.posId)}
-                className="text-red-500 hover:text-red-700 transition cursor-pointer"
+                className="shrink-0 w-9 h-9 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition cursor-pointer"
+                aria-label={`Eliminar ${item.name}`}
               >
-                X
+                ✕
               </button>
             </div>
           ))}
         </div>
 
         {/* TOTAL */}
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4 mt-4">
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 sm:p-5 mb-4 mt-4">
           <div className="text-sm text-gray-500">Total a cobrar</div>
 
-          <div className="text-4xl font-black text-green-600">
+          <div className="text-3xl sm:text-4xl font-black text-green-600 break-words">
             ${total.toLocaleString()}
           </div>
         </div>
 
         {/* MÉTODO DE PAGO */}
         <select
-          className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+          className="w-full border border-slate-300 rounded-xl p-3.5 sm:p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none bg-white"
           value={paymentMethod}
           onChange={(e) => setPaymentMethod(e.target.value)}
         >
           <option value="efectivo">💵 Efectivo</option>
+
           <option value="transferencia">📲 Transferencia</option>
         </select>
 
         {/* CLIENTE */}
         <input
-          className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+          className="w-full border border-slate-300 rounded-xl p-3.5 sm:p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           placeholder="👤 Nombre del cliente"
@@ -338,31 +394,31 @@ export default function POSPage() {
 
         {/* EFECTIVO */}
         {paymentMethod === "efectivo" && (
-          <>
-            <input
-              type="number"
-              className="w-full border border-slate-300 rounded-xl p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
-              value={cashReceived}
-              onChange={(e) => setCashReceived(e.target.value)}
-              placeholder="💵 Monto recibido"
-            />
-          </>
+          <input
+            type="number"
+            className="w-full border border-slate-300 rounded-xl p-3.5 sm:p-3 mb-3 focus:ring-2 focus:ring-green-500 outline-none"
+            value={cashReceived}
+            onChange={(e) => setCashReceived(e.target.value)}
+            placeholder="💵 Monto recibido"
+          />
         )}
 
         {/* CAMBIO */}
         {paymentMethod === "efectivo" && cashReceived && total > 0 && (
           <div className="bg-slate-50 border rounded-2xl p-4 mb-4 shadow-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <span>Total</span>
+
               <span className="font-bold">${total.toLocaleString()}</span>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4 mt-1">
               <span>Recibido</span>
+
               <span className="font-bold">${received.toLocaleString()}</span>
             </div>
 
-            <div className="flex justify-between mt-2">
+            <div className="flex justify-between gap-4 mt-2">
               <span className="font-semibold">
                 {change < 0 ? "Faltan" : "Cambio"}
               </span>
@@ -381,7 +437,8 @@ export default function POSPage() {
         {/* BOTÓN */}
         <button
           onClick={finalizeSale}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+          disabled={cart.length === 0}
+          className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
         >
           Finalizar venta
         </button>
@@ -389,43 +446,43 @@ export default function POSPage() {
 
       {/* MODAL */}
       {modalOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-3xl w-96 shadow-2xl">
-            <h2 className="font-bold text-xl mb-3">{selectedItem.name}</h2>
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white p-5 sm:p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+            <h2 className="font-bold text-xl mb-4 text-gray-800 break-words">
+              {selectedItem.name}
+            </h2>
 
-            <div className="mb-4 w-40 h-40 mx-auto rounded flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
-              {selectedItem.imageUrl ? (
-                <Image
-                  src={selectedItem.imageUrl}
-                  alt={selectedItem.name}
-                  width={160}
-                  height={160}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>Sin imagen</span>
-              )}
+            {/* IMAGEN */}
+            <div className="mb-4 w-36 h-36 sm:w-40 sm:h-40 mx-auto rounded-2xl flex items-center justify-center bg-gray-100 overflow-hidden">
+              <Image
+                src={selectedItem.imageUrl || "/uploads/placeholder.jpg"}
+                alt={selectedItem.name}
+                unoptimized
+                width={160}
+                height={160}
+                className="w-full h-full object-cover"
+              />
             </div>
 
             <input
               type="number"
-              className="border rounded-xl p-3 w-full mb-4"
+              className="border border-gray-300 rounded-xl p-3.5 w-full mb-4 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500"
               value={qty}
               min={1}
               onChange={(e) => setQty(Number(e.target.value))}
             />
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={confirmAdd}
-                className="bg-green-600 text-white flex-1 py-3 rounded-xl hover:bg-green-700"
+                className="bg-green-600 text-white flex-1 py-3.5 sm:py-3 rounded-xl hover:bg-green-700 active:bg-green-800 font-semibold cursor-pointer"
               >
                 Agregar
               </button>
 
               <button
                 onClick={() => setModalOpen(false)}
-                className="bg-gray-200 flex-1 py-3 rounded-xl hover:bg-gray-300"
+                className="bg-gray-200 flex-1 py-3.5 sm:py-3 rounded-xl hover:bg-gray-300 active:bg-gray-400 font-semibold cursor-pointer"
               >
                 Cancelar
               </button>
@@ -434,9 +491,17 @@ export default function POSPage() {
         </div>
       )}
 
+      {/* SUCCESS */}
       {showSuccess && (
-        <div className="fixed top-5 right-5 bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50">
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm bg-green-600 text-white px-5 sm:px-6 py-4 rounded-2xl shadow-2xl z-50 text-center sm:text-left">
           ✅ ¡Venta realizada!
+        </div>
+      )}
+
+      {/* ERROR */}
+      {showError && (
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm bg-red-600 text-white px-5 sm:px-6 py-4 rounded-2xl shadow-2xl z-50 whitespace-pre-line text-center sm:text-left">
+          ❌ {errorMessage}
         </div>
       )}
     </div>

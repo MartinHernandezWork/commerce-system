@@ -1,47 +1,77 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
-import { writeFile, mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file");
 
-    if (!file) {
+    // Verificar que realmente sea un archivo
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert file to buffer
+    // Verificar que sea una imagen
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json(
+        { error: "El archivo debe ser una imagen" },
+        { status: 400 },
+      );
+    }
+
+    // Convertir el archivo recibido a Buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Optimize the image (resize + compress)
+    // Optimizar:
+    // - máximo 600x600
+    // - mantiene proporción
+    // - no recorta el producto
+    // - convierte siempre a WebP
+    // - calidad 80
     const optimized = await sharp(buffer)
-      .resize(256, 256, {
-        fit: "cover",
-      })                            // tamaño máximo
-      .jpeg({ quality: 70 })       // compresión
+      .resize(600, 600, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({
+        quality: 80,
+      })
       .toBuffer();
 
+    // Crear carpeta de uploads si no existe
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
-    // Ensure uploads dir exists
-    await mkdir(uploadDir, { recursive: true });
+    await mkdir(uploadDir, {
+      recursive: true,
+    });
 
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    // Nombre seguro para el archivo
+    const originalName = path
+      .parse(file.name)
+      .name.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+    const fileName = `${Date.now()}-${originalName}.webp`;
+
     const filePath = path.join(uploadDir, fileName);
 
+    // Guardar únicamente la versión optimizada
     await writeFile(filePath, optimized);
 
+    // URL que se guardará en la base de datos
     const url = `/uploads/${fileName}`;
 
-    return NextResponse.json({ url });
-  } catch (e) {
-    console.error(e);
+    return NextResponse.json({
+      url,
+    });
+  } catch (error) {
+    console.error("Error al subir imagen:", error);
+
     return NextResponse.json(
       { error: "Error al subir imagen" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

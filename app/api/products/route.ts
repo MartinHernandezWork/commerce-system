@@ -58,13 +58,33 @@ export async function POST(request: Request) {
 
     // Validar barcode único
     if (barcode) {
-      const existing = await prisma.product.findUnique({
+      const existingBarcode = await prisma.product.findUnique({
         where: { barcode },
       });
 
-      if (existing) {
+      if (existingBarcode) {
         return NextResponse.json(
-          { error: `El código de barras "${barcode}" ya existe.` },
+          {
+            field: "barcode",
+            error: "Este código de barras ya está en uso.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Validar SKU único
+    if (sku) {
+      const existingSku = await prisma.product.findUnique({
+        where: { sku },
+      });
+
+      if (existingSku) {
+        return NextResponse.json(
+          {
+            field: "sku",
+            error: "Este SKU ya está en uso.",
+          },
           { status: 400 },
         );
       }

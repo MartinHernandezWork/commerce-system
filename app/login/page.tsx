@@ -38,15 +38,25 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Sistema Ventas</h1>
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-5 sm:p-8">
+          {/* HEADER */}
+          <div className="text-center mb-7 sm:mb-8">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-2xl">
+              🛒
+            </div>
 
-            <p className="text-gray-500 mt-2">Ingresá para continuar</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+              Sistema Ventas
+            </h1>
+
+            <p className="text-sm sm:text-base text-gray-500 mt-2">
+              Ingresá para continuar
+            </p>
           </div>
 
+          {/* FORMULARIO */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
@@ -60,11 +70,13 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
                 placeholder="Ingresá tu contraseña"
                 autoComplete="current-password"
                 required
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3.5 sm:py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
               />
             </div>
 
@@ -77,7 +89,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gray-900 px-4 py-3 font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-green-600 px-4 py-3.5 sm:py-3 font-semibold text-white transition hover:bg-green-700 active:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Ingresando..." : "Ingresar"}
             </button>

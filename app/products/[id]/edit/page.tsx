@@ -94,184 +94,239 @@ export default function EditProduct(props: any) {
     router.push("/products");
   }
 
-  if (loading) return <p className="p-6">Cargando...</p>;
+  if (loading) {
+    return (
+      <div className="w-full min-h-full px-4 py-8 sm:px-6 sm:py-12 flex justify-center">
+        <div className="w-full max-w-3xl">
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-semibold">Editando: {product.name}</h1>
-
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 border p-6 rounded-lg shadow-sm bg-white"
-      >
+    <div className="w-full min-h-full px-4 py-6 sm:px-6 sm:py-8 md:py-10 flex justify-center">
+      <div className="w-full max-w-3xl space-y-5 sm:space-y-6">
         <div>
-          <label className="block font-medium">Nombre</label>
-          <input
-            name="name"
-            defaultValue={product.name}
-            required
-            className="border p-2 rounded w-full"
-          />
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-800 break-words">
+            Editando: {product.name}
+          </h1>
+
+          <p className="text-sm text-gray-500 mt-1">
+            Modificá la información del producto.
+          </p>
         </div>
 
-        <div>
-          <label className="block font-medium">Descripción</label>
-          <textarea
-            name="description"
-            defaultValue={product.description || ""}
-            className="border p-2 rounded w-full"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block font-medium">Barcode</label>
-            <input
-              name="barcode"
-              defaultValue={product.barcode || ""}
-              className="border p-2 rounded w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium">SKU interno</label>
-            <input
-              name="sku"
-              defaultValue={product.sku || ""}
-              className="border p-2 rounded w-full"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-4">
-          <div>
-            <label className="block font-medium">Stock</label>
-            <input
-              name="stock"
-              type="number"
-              step="0.01"
-              defaultValue={product.stock}
-              required
-              className="border p-2 rounded w-full"
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Tipo de unidad</label>
-
-            <select
-              name="unitType"
-              defaultValue={product.unitType || "UNIT"}
-              className="border p-2 rounded w-full"
-            >
-              <option value="UNIT">Unidad</option>
-              <option value="G">Gramos</option>
-              <option value="KG">Kilos</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-medium">Precio costo</label>
-            <input
-              name="costPrice"
-              type="number"
-              step="0.01"
-              defaultValue={product.costPrice}
-              required
-              className="border p-2 rounded w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium">Precio venta</label>
-            <input
-              name="salePrice"
-              type="number"
-              step="0.01"
-              defaultValue={product.salePrice}
-              required
-              className="border p-2 rounded w-full"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block font-medium">Categoría</label>
-            <select
-              name="categoryId"
-              defaultValue={product.categoryId || ""}
-              className="border p-2 rounded w-full"
-            >
-              <option value="">Sin categoría</option>
-              {categories.map((c) => (
-                <option value={c.id} key={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-medium">Proveedor</label>
-            <select
-              name="supplierId"
-              defaultValue={product.supplierId || ""}
-              className="border p-2 rounded w-full"
-            >
-              <option value="">Sin proveedor</option>
-              {suppliers.map((s) => (
-                <option value={s.id} key={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>   
-
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            name="showInPOS"
-            defaultChecked={product.showInPOS}
-            className="w-5 h-5"
-          />
-          <label className="font-medium">Mostrar producto a la venta</label>
-        </div>
-
-        {/* Imagen */}
-        <div>
-          <label className="block font-medium mb-2">Imagen del producto</label>
-
-          {uploading && (
-            <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
-          )}
-
-          <div className="mt-3 w-40 h-40 border rounded flex items-center justify-center bg-gray-100 text-gray-400">
-            {imageUrl ? (
-              <img src={imageUrl} className="w-full h-full object-cover" />
-            ) : (
-              <span>Sin imagen</span>
-            )}
-          </div>
-          <label className="inline-block bg-blue-500 text-white px-4 py-2 mt-2 rounded cursor-pointer hover:bg-blue-600">
-            Elegir imagen
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => uploadImage(e.target.files?.[0]!)}
-            />
-          </label>
-        </div>
-        
-
-        <button
-          type="submit"
-          className="inline-block bg-green-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-green-600"
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 sm:space-y-6 border border-gray-200 p-4 sm:p-6 rounded-2xl shadow-sm bg-white"
         >
-          Guardar cambios
-        </button>
-      </form>
+          {/* Nombre */}
+          <div>
+            <label className="block font-medium mb-1.5">Nombre</label>
+
+            <input
+              name="name"
+              defaultValue={product.name}
+              required
+              className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+
+          {/* Descripción */}
+          <div>
+            <label className="block font-medium mb-1.5">Descripción</label>
+
+            <textarea
+              name="description"
+              defaultValue={product.description || ""}
+              rows={4}
+              className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-y"
+            />
+          </div>
+
+          {/* Barcode / SKU */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-medium mb-1.5">Barcode</label>
+
+              <input
+                name="barcode"
+                defaultValue={product.barcode || ""}
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1.5">SKU interno</label>
+
+              <input
+                name="sku"
+                defaultValue={product.sku || ""}
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+          </div>
+
+          {/* Stock / Unidad / Coste / Venta */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-medium mb-1.5">Stock</label>
+
+              <input
+                name="stock"
+                type="number"
+                step="0.01"
+                defaultValue={product.stock}
+                required
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1.5">Tipo de unidad</label>
+
+              <select
+                name="unitType"
+                defaultValue={product.unitType || "UNIT"}
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              >
+                <option value="UNIT">Unidad</option>
+                <option value="G">Gramos</option>
+                <option value="KG">Kilos</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1.5">Precio costo</label>
+
+              <input
+                name="costPrice"
+                type="number"
+                step="0.01"
+                defaultValue={product.costPrice}
+                required
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1.5">Precio venta</label>
+
+              <input
+                name="salePrice"
+                type="number"
+                step="0.01"
+                defaultValue={product.salePrice}
+                required
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+          </div>
+
+          {/* Categoría / Proveedor */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-medium mb-1.5">Categoría</label>
+
+              <select
+                name="categoryId"
+                defaultValue={product.categoryId || ""}
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              >
+                <option value="">Sin categoría</option>
+
+                {categories.map((c) => (
+                  <option value={c.id} key={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-medium mb-1.5">Proveedor</label>
+
+              <select
+                name="supplierId"
+                defaultValue={product.supplierId || ""}
+                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              >
+                <option value="">Sin proveedor</option>
+
+                {suppliers.map((s) => (
+                  <option value={s.id} key={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Mostrar en POS */}
+          <div className="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="showInPOS"
+                defaultChecked={product.showInPOS}
+                className="w-5 h-5 accent-green-600 shrink-0"
+              />
+
+              <span className="font-medium">Mostrar producto a la venta</span>
+            </label>
+          </div>
+
+          {/* Imagen */}
+          <div>
+            <label className="block font-medium mb-2">
+              Imagen del producto
+            </label>
+
+            {uploading && (
+              <p className="text-sm text-gray-500 mb-2">Procesando imagen...</p>
+            )}
+
+            <div className="w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>Sin imagen</span>
+              )}
+            </div>
+
+            <label className="inline-flex items-center justify-center bg-blue-500 text-white px-5 py-3 mt-3 rounded-xl cursor-pointer hover:bg-blue-600 transition font-medium w-full sm:w-auto">
+              Elegir imagen
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (file) {
+                    uploadImage(file);
+                  }
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Guardar */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full sm:w-auto bg-green-500 text-white px-6 py-3 rounded-xl cursor-pointer hover:bg-green-600 transition font-semibold shadow-sm"
+            >
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
