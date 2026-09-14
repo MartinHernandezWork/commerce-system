@@ -337,11 +337,6 @@ export default function CreateProductPage() {
               Imagen del producto <span className="text-red-500">*</span>
             </label>
 
-            <p className="text-sm text-gray-500 mb-3">
-              La imagen es obligatoria. Tamaño máximo del archivo original: 5
-              MB. Se optimizará automáticamente al subirla.
-            </p>
-
             {/* VISTA PREVIA */}
             <div className="mb-3 w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
               {imageUrl ? (
@@ -353,15 +348,24 @@ export default function CreateProductPage() {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <Image
-                  src="/uploads/placeholder.jpg"
-                  alt="Sin imagen"
-                  width={320}
-                  height={320}
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt="Vista previa del producto"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>Sin imagen</span>
+                  )}
+                </div>
               )}
             </div>
+
+            <p className="text-sm text-gray-500 mb-3">
+              Tamaño máximo del archivo: 5
+              MB.
+            </p>
 
             {/* BOTÓN SUBIR */}
             <label

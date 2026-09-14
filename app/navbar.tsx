@@ -71,14 +71,23 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
 
-          {/* LOGO + ESTADO DE CAJA */}
+          {/* LOGO + NOMBRE + ESTADO DE CAJA */}
           <div className="flex items-center gap-3 min-w-0">
+
             <Link
               href="/"
               onClick={closeMenus}
-              className="text-lg sm:text-xl font-bold whitespace-nowrap cursor-pointer"
+              className="flex items-center gap-2.5 cursor-pointer"
             >
-              Lo Del Donald
+              <img
+                src="/uploads/donald.jpg"
+                alt="Logo de Lo Del Donald"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain bg-white"
+              />
+
+              <span className="text-lg sm:text-xl font-bold whitespace-nowrap">
+                Lo Del Donald
+              </span>
             </Link>
 
             {cashOpen !== null && (
@@ -113,6 +122,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
               >
                 Caja
+
                 <ChevronDown
                   size={16}
                   className={iconClass("cash")}
@@ -145,6 +155,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
               >
                 Historial
+
                 <ChevronDown
                   size={16}
                   className={iconClass("history")}
@@ -177,6 +188,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
               >
                 Productos
+
                 <ChevronDown
                   size={16}
                   className={iconClass("products")}
@@ -221,7 +233,7 @@ export default function Navbar() {
             {/* LOGOUT */}
             <button
               onClick={logout}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition cursor-pointer"
+              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg font-medium transition cursor-pointer"
             >
               <LogOut size={16} />
               Cerrar sesión
@@ -258,50 +270,6 @@ export default function Navbar() {
                 {cashOpen ? "● Caja abierta" : "● Caja cerrada"}
               </div>
             )}
-
-            {/* VENTAS */}
-            <Link
-              href="/pos"
-              onClick={closeMenus}
-              className="block hover: px-4 py-3 rounded-lg transition cursor-pointer"
-            >
-              Ventas
-            </Link>
-
-            {/* CAJA */}
-            <div>
-              <button
-                onClick={() => toggle("mobile-cash")}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-              >
-                <span>Caja</span>
-
-                <ChevronDown
-                  size={18}
-                  className={iconClass("mobile-cash")}
-                />
-              </button>
-
-              {openMenu === "mobile-cash" && (
-                <div className="mt-1 ml-3 space-y-1">
-                  <Link
-                    href="/cash"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Abrir caja
-                  </Link>
-
-                  <Link
-                    href="/cash/close"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Cerrar caja
-                  </Link>
-                </div>
-              )}
-            </div>
 
             {/* HISTORIAL */}
             <div>

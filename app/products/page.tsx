@@ -54,7 +54,7 @@ export default function ProductsPage() {
 
   async function deleteProduct(id: number) {
     const confirm1 = confirm(
-      "⚠️ ATENCIÓN\n\nSi eliminás este producto se borrarán:\n- ventas registradas\n- movimientos de stock\n- historial\n\n¿Querés continuar?",
+      "⚠️ ATENCIÓN\n\n ¿Estas seguro que quieres eliminar este producto?",
     );
 
     if (!confirm1) return;
@@ -98,7 +98,7 @@ export default function ProductsPage() {
           href="/products/new"
           className="w-full sm:w-auto inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl shadow-sm font-semibold transition"
         >
-          + Crear producto
+          + Nuevo producto
         </Link>
       </div>
 

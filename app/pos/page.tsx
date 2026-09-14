@@ -220,7 +220,7 @@ export default function POSPage() {
         {/* BUSCADOR */}
         <input
           className="w-full border border-slate-300 bg-white rounded-2xl p-3.5 sm:p-3 mb-4 sm:mb-5 shadow-sm focus:ring-2 focus:ring-green-500 outline-none"
-          placeholder="🔍 Buscar producto..."
+          placeholder="Buscar producto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -235,7 +235,7 @@ export default function POSPage() {
                 : "bg-white text-gray-700 border hover:bg-gray-100"
             }`}
           >
-            Todas
+            Todos
           </button>
 
           {categories.map((category) => (

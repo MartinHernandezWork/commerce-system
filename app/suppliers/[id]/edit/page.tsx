@@ -137,7 +137,7 @@ export default function EditSupplierPage() {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition cursor-pointer"
+              className="w-full bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold transition cursor-pointer"
             >
               Guardar cambios
             </button>

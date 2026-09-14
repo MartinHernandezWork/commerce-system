@@ -114,13 +114,6 @@ export default function RecipesPage() {
       {!loading && recipes.length === 0 && (
         <div className="bg-white border border-gray-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
           <p className="text-gray-500">No hay recetas creadas</p>
-
-          <Link
-            href="/recipes/new"
-            className="inline-flex items-center justify-center mt-4 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold transition"
-          >
-            Crear primera receta
-          </Link>
         </div>
       )}
 

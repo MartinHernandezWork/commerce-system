@@ -1,6 +1,35 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// GET → obtener categoría por ID
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const category = await prisma.category.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { error: "Categoría no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(category);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Error al obtener la categoría" },
+      { status: 500 }
+    );
+  }
+}
+
 // PUT → editar categoría
 export async function PUT(
   req: Request,
@@ -25,7 +54,10 @@ export async function PUT(
     return NextResponse.json(category);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al actualizar" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al actualizar" },
+      { status: 500 }
+    );
   }
 }
 
@@ -44,6 +76,9 @@ export async function DELETE(
     return NextResponse.json({ message: "Categoría eliminada" });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Error al eliminar" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al eliminar" },
+      { status: 500 }
+    );
   }
 }

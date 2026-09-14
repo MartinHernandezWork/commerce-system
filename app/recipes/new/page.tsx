@@ -49,6 +49,27 @@ export default function NewRecipePage() {
     }
   }
 
+  // OBTENER PLACEHOLDER SEGÚN LA UNIDAD DEL PRODUCTO
+  function getQuantityPlaceholder() {
+    const product = products.find((p) => p.id === Number(selectedProduct));
+
+    if (!product) return "Cantidad";
+
+    switch (product.unitType.toLowerCase()) {
+      case "unidad":
+        return "Cantidad (un)";
+
+      case "gramos":
+        return "Cantidad (gr)";
+
+      case "kilo":
+        return "Cantidad (kg)";
+
+      default:
+        return "Cantidad";
+    }
+  }
+
   // SUBIR IMAGEN
   async function uploadImage(file: File) {
     const form = new FormData();
@@ -205,63 +226,6 @@ export default function NewRecipePage() {
             </div>
           </div>
 
-          {/* IMAGEN */}
-          <div>
-            <label className="block font-medium mb-2">
-              Imagen de la receta
-            </label>
-
-            <p className="text-sm text-gray-500 mb-3">
-              Podés agregar una imagen para identificar la receta.
-            </p>
-
-            <label
-              className={`inline-flex items-center justify-center px-5 py-3 rounded-xl text-white font-medium transition w-full sm:w-auto ${
-                uploading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
-              }`}
-            >
-              {uploading ? "Procesando..." : "Elegir imagen"}
-
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-
-                  if (file) {
-                    uploadImage(file);
-                  }
-
-                  // Permite volver a seleccionar el mismo archivo
-                  e.target.value = "";
-                }}
-              />
-            </label>
-
-            {uploading && (
-              <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
-            )}
-
-            {/* VISTA PREVIA */}
-            <div className="mt-4 w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
-              {imageUrl ? (
-                <Image
-                  width={320}
-                  height={320}
-                  src={imageUrl}
-                  alt="Imagen de la receta"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>Sin imagen</span>
-              )}
-            </div>
-          </div>
-
           {/* INGREDIENTES */}
           <div className="border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-4 bg-gray-50">
             <div>
@@ -274,11 +238,13 @@ export default function NewRecipePage() {
               </p>
             </div>
 
-            {/* AGREGAR */}
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-3">
               <select
                 value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
+                onChange={(e) => {
+                  setSelectedProduct(e.target.value);
+                  setQuantity("");
+                }}
                 className="border border-slate-300 p-3 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
               >
                 <option value="">Seleccionar producto</option>
@@ -290,14 +256,24 @@ export default function NewRecipePage() {
                 ))}
               </select>
 
-              <input
-                type="number"
-                step="0.01"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="border border-slate-300 p-3 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-                placeholder="Cantidad"
-              />
+              {(() => {
+                const product = products.find(
+                  (p) => p.id === Number(selectedProduct),
+                );
+
+                return (
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="border border-slate-300 p-3 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                    placeholder={
+                      product ? `Cantidad (${product.unitType})` : "Cantidad"
+                    }
+                  />
+                );
+              })()}
 
               <button
                 type="button"
@@ -344,6 +320,63 @@ export default function NewRecipePage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* IMAGEN */}
+          <div>
+            <label className="block font-medium mb-2">
+              Imagen de la receta
+            </label>
+
+            {/* VISTA PREVIA */}
+            <div className="mt-4 w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
+              {imageUrl ? (
+                <Image
+                  width={320}
+                  height={320}
+                  src={imageUrl}
+                  alt="Imagen de la receta"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>Sin imagen</span>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-500 mt-3">
+              Tamaño máximo del archivo: 5MB.
+            </p>
+
+            <label
+              className={`inline-flex items-center justify-center px-5 py-3 mt-4 rounded-xl text-white font-medium transition w-full sm:w-auto ${
+                uploading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+              }`}
+            >
+              {uploading ? "Procesando..." : "Elegir imagen"}
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+
+                  if (file) {
+                    uploadImage(file);
+                  }
+
+                  // Permite volver a seleccionar el mismo archivo
+                  e.target.value = "";
+                }}
+              />
+            </label>
+
+            {uploading && (
+              <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
+            )}
           </div>
 
           {/* BOTONES */}

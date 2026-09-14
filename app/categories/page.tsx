@@ -1,30 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
-  const [name, setName] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState("");
   const [search, setSearch] = useState("");
 
   async function load() {
     const res = await fetch("/api/categories");
     setCategories(await res.json());
-  }
-
-  async function createCategory(e: any) {
-    e.preventDefault();
-
-    await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-
-    setName("");
-    load();
   }
 
   async function deleteCategory(id: number) {
@@ -36,23 +21,6 @@ export default function CategoriesPage() {
       method: "DELETE",
     });
 
-    load();
-  }
-
-  function startEdit(cat: any) {
-    setEditingId(cat.id);
-    setEditingName(cat.name);
-  }
-
-  async function saveEdit(id: number) {
-    await fetch(`/api/categories/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editingName }),
-    });
-
-    setEditingId(null);
-    setEditingName("");
     load();
   }
 
@@ -71,15 +39,26 @@ export default function CategoriesPage() {
   return (
     <div className="w-full min-h-full px-4 py-6 sm:px-6 sm:py-8 lg:p-8 space-y-5 sm:space-y-6">
       {/* HEADER */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-slate-800">
-          Categorías
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-800">
+            Categorías
+          </h1>
 
-        <p className="text-sm sm:text-base text-gray-500 mt-1">
-          Creá y administrá las categorías de tus productos
-        </p>
+          <p className="text-sm sm:text-base text-gray-500 mt-1">
+            Administrá las categorías de tus productos
+          </p>
+        </div>
+
+        <Link
+          href="/categories/new"
+          className="w-full sm:w-auto bg-green-600 hover:bg-green-700 active:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold text-center transition cursor-pointer"
+        >
+          + Nueva categoría
+        </Link>
       </div>
+
+      {/* SEARCH */}
       {categories.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
           <div className="relative">
@@ -115,29 +94,6 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* FORMULARIO */}
-      <form
-        onSubmit={createCategory}
-        className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm"
-      >
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            className="border border-gray-300 p-3 rounded-xl flex-1 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-            placeholder="Nombre de la categoría"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-
-          <button
-            type="submit"
-            className="bg-green-600 hover:bg-green-700 active:bg-green-700  text-white px-5 py-3 rounded-xl font-bold transition cursor-pointer sm:shrink-0"
-          >
-            Crear
-          </button>
-        </div>
-      </form>
-
       {/* NO RESULTS */}
       {categories.length > 0 && filteredCategories.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center shadow-sm">
@@ -145,7 +101,9 @@ export default function CategoriesPage() {
             No se encontraron categorías.
           </p>
 
-          <p className="text-sm text-gray-400 mt-1">Probá con otro nombre.</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Probá con otro nombre.
+          </p>
 
           <button
             type="button"
@@ -163,57 +121,27 @@ export default function CategoriesPage() {
               key={c.id}
               className="border border-gray-200 rounded-2xl p-4 bg-white shadow-sm"
             >
-              {editingId === c.id ? (
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    className="border border-gray-300 p-3 rounded-xl flex-1 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 transition"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    autoFocus
-                  />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <span className="font-medium text-gray-800 break-words">
+                  {c.name}
+                </span>
 
-                  <div className="flex gap-2 sm:shrink-0">
-                    <button
-                      onClick={() => saveEdit(c.id)}
-                      className="flex-1 sm:flex-none px-4 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-xl font-medium transition cursor-pointer"
-                    >
-                      Guardar
-                    </button>
+                <div className="flex gap-2 sm:shrink-0">
+                  <Link
+                    href={`/categories/${c.id}/edit`}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-medium text-center transition cursor-pointer"
+                  >
+                    Editar
+                  </Link>
 
-                    <button
-                      onClick={() => {
-                        setEditingId(null);
-                        setEditingName("");
-                      }}
-                      className="flex-1 sm:flex-none px-4 py-3 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white rounded-xl font-medium transition cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => deleteCategory(c.id)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-xl font-medium transition cursor-pointer"
+                  >
+                    Eliminar
+                  </button>
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <span className="font-medium text-gray-800 break-words">
-                    {c.name}
-                  </span>
-
-                  <div className="flex gap-2 sm:shrink-0">
-                    <button
-                      onClick={() => startEdit(c)}
-                      className="flex-1 sm:flex-none px-4 py-2.5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-xl font-medium transition cursor-pointer"
-                    >
-                      Editar
-                    </button>
-
-                    <button
-                      onClick={() => deleteCategory(c.id)}
-                      className="flex-1 sm:flex-none px-4 py-2.5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-xl font-medium transition cursor-pointer"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </li>
           ))}
         </ul>

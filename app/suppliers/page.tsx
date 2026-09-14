@@ -68,9 +68,9 @@ export default function SuppliersPage() {
 
         <Link
           href="/suppliers/new"
-          className="w-full sm:w-auto inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-sm font-semibold transition"
+          className="w-full sm:w-auto inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl shadow-sm font-semibold transition"
         >
-          + Crear proveedor
+          + Nuevo proveedor
         </Link>
       </div>
 
