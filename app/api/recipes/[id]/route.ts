@@ -1,17 +1,30 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdmin, requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 // GET receta
+// ADMIN + EMPLOYEE
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireAuth();
+
     const { id } = await context.params;
+
+    const recipeId = Number(id);
+
+    if (isNaN(recipeId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 },
+      );
+    }
 
     const recipe = await prisma.recipe.findFirst({
       where: {
-        id: Number(id),
+        id: recipeId,
         deletedAt: null,
       },
       include: {
@@ -32,7 +45,14 @@ export async function GET(
 
     return NextResponse.json(recipe);
   } catch (error) {
-    console.error(error);
+    console.error("GET /recipes/[id] error:", error);
+
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Error obteniendo receta" },
@@ -42,18 +62,29 @@ export async function GET(
 }
 
 // PUT actualizar receta
+// ADMIN solamente
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireAdmin();
+
     const { id } = await context.params;
     const body = await req.json();
 
     const { name, price, imageUrl, items } = body;
+
     const recipeId = Number(id);
 
-    // verificar que la receta exista y esté activa
+    if (isNaN(recipeId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 },
+      );
+    }
+
+    // Verificar que la receta exista y esté activa
     const existingRecipe = await prisma.recipe.findFirst({
       where: {
         id: recipeId,
@@ -68,7 +99,7 @@ export async function PUT(
       );
     }
 
-    // actualizar receta base
+    // Actualizar receta base
     const recipe = await prisma.recipe.update({
       where: {
         id: recipeId,
@@ -80,19 +111,19 @@ export async function PUT(
       },
     });
 
-    // borrar ingredientes anteriores
+    // Borrar ingredientes anteriores
     await prisma.recipeItem.deleteMany({
       where: {
         recipeId,
       },
     });
 
-    // crear nuevos ingredientes
+    // Crear nuevos ingredientes
     await prisma.recipeItem.createMany({
       data: items.map((item: any) => ({
         recipeId,
-        productId: item.productId,
-        quantity: item.quantity,
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
       })),
     });
 
@@ -101,7 +132,21 @@ export async function PUT(
       recipe,
     });
   } catch (error) {
-    console.error(error);
+    console.error("PUT /recipes/[id] error:", error);
+
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return NextResponse.json(
+        { error: "No tenés permisos para actualizar recetas" },
+        { status: 403 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Error actualizando receta" },
@@ -111,16 +156,28 @@ export async function PUT(
 }
 
 // DELETE receta → Soft Delete
+// ADMIN solamente
 export async function DELETE(
   req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireAdmin();
+
     const { id } = await context.params;
+
+    const recipeId = Number(id);
+
+    if (isNaN(recipeId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 },
+      );
+    }
 
     const recipe = await prisma.recipe.findFirst({
       where: {
-        id: Number(id),
+        id: recipeId,
         deletedAt: null,
       },
     });
@@ -134,7 +191,7 @@ export async function DELETE(
 
     const deleted = await prisma.recipe.update({
       where: {
-        id: Number(id),
+        id: recipeId,
       },
       data: {
         deletedAt: new Date(),
@@ -146,7 +203,21 @@ export async function DELETE(
       recipe: deleted,
     });
   } catch (error) {
-    console.error(error);
+    console.error("DELETE /recipes/[id] error:", error);
+
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return NextResponse.json(
+        { error: "No tenés permisos para eliminar recetas" },
+        { status: 403 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Error eliminando receta" },

@@ -1,7 +1,10 @@
 import { createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcrypt";
 
-function createAuthToken() {
+import { prisma } from "@/lib/prisma";
+
+function createAuthToken(userId: number) {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret) {
@@ -10,35 +13,73 @@ function createAuthToken() {
 
   const timestamp = Date.now().toString();
 
+  const payload = `${userId}.${timestamp}`;
+
   const signature = createHmac("sha256", secret)
-    .update(timestamp)
+    .update(payload)
     .digest("hex");
 
-  return `${timestamp}.${signature}`;
+  return `${userId}.${timestamp}.${signature}`;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { password } = await request.json();
+    const { username, password } = await request.json();
 
-    if (!password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: "La contraseña es requerida" },
-        { status: 400 },
+        {
+          error: "Usuario y contraseña son requeridos",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    if (password !== process.env.AUTH_PASSWORD) {
+    const user = await prisma.user.findUnique({
+      where: {
+        username,
+      },
+    });
+
+    if (!user) {
       return NextResponse.json(
-        { error: "Contraseña incorrecta" },
-        { status: 401 },
+        {
+          error: "Usuario o contraseña incorrectos",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
-    const token = createAuthToken();
+    const passwordIsValid = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
+    if (!passwordIsValid) {
+      return NextResponse.json(
+        {
+          error: "Usuario o contraseña incorrectos",
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    const token = createAuthToken(user.id);
 
     const response = NextResponse.json({
       success: true,
+
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+      },
     });
 
     response.cookies.set("auth_token", token, {
@@ -46,6 +87,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
+      maxAge: 8 * 60 * 60,
     });
 
     return response;
@@ -53,8 +95,12 @@ export async function POST(request: NextRequest) {
     console.error("Error en login:", error);
 
     return NextResponse.json(
-      { error: "Error al procesar el inicio de sesión" },
-      { status: 500 },
+      {
+        error: "Error al procesar el inicio de sesión",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

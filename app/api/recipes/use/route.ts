@@ -1,19 +1,25 @@
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    await requireAuth();
+
     const body = await req.json();
 
     const { recipeId, quantity, groupId } = body;
 
     if (!recipeId || !quantity || !groupId) {
-      return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Datos incompletos" },
+        { status: 400 },
+      );
     }
 
     const recipe = await prisma.recipe.findFirst({
       where: {
-        id: recipeId,
+        id: Number(recipeId),
         deletedAt: null,
       },
       include: {
@@ -32,9 +38,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // validar stock
+    // Validar stock
     for (const item of recipe.items) {
-      const required = item.quantity * quantity;
+      const required =
+        item.quantity * Number(quantity);
 
       if (item.product.stock < required) {
         return NextResponse.json(
@@ -46,14 +53,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // descontar stock
+    // Descontar stock y registrar la venta
     await prisma.$transaction(async (tx) => {
-      // 1. descontar stock de ingredientes
+      // 1. Descontar stock de ingredientes
       for (const item of recipe.items) {
-        const required = item.quantity * quantity;
+        const required =
+          item.quantity * Number(quantity);
 
         await tx.product.update({
-          where: { id: item.productId },
+          where: {
+            id: item.productId,
+          },
           data: {
             stock: {
               decrement: required,
@@ -71,13 +81,13 @@ export async function POST(req: Request) {
         });
       }
 
-      // 2. registrar la venta de la receta (UNA SOLA VEZ)
+      // 2. Registrar la venta de la receta
       if (groupId) {
         await tx.recipeSale.create({
           data: {
-            recipeId,
-            groupId,
-            quantity,
+            recipeId: Number(recipeId),
+            groupId: Number(groupId),
+            quantity: Number(quantity),
 
             // Snapshot histórico
             recipeName: recipe.name,
@@ -87,9 +97,18 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("POST /recipes/use error:", error);
+
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Error procesando receta" },

@@ -2,20 +2,91 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronDown, Menu, X, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import {
+  ChevronDown,
+  Menu,
+  X,
+  LogOut,
+  User,
+} from "lucide-react";
+
+type UserData = {
+  id: number;
+  username: string;
+  role: "ADMIN" | "EMPLOYEE";
+};
 
 export default function Navbar() {
+  const pathname = usePathname();
+
   const [cashOpen, setCashOpen] = useState<boolean | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const [user, setUser] = useState<UserData | null>(null);
+
+  const isLoginPage = pathname === "/login";
+  const isAdmin = user?.role === "ADMIN";
+
+  // =========================================================
+  // OBTENER USUARIO ACTUAL
+  // =========================================================
+
   useEffect(() => {
-    function load() {
-      fetch("/api/cash/status")
-        .then((res) => res.json())
-        .then((data) => {
-          setCashOpen(data.isOpen);
-        });
+    if (isLoginPage) {
+      setUser(null);
+      return;
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+
+        const data = await res.json();
+
+        setUser(data);
+      } catch (error) {
+        console.error("Error al obtener el usuario:", error);
+        setUser(null);
+      }
+    }
+
+    loadUser();
+  }, [isLoginPage]);
+
+  // =========================================================
+  // ESTADO DE CAJA
+  // =========================================================
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setCashOpen(null);
+      return;
+    }
+
+    async function load() {
+      try {
+        const res = await fetch("/api/cash/status");
+
+        if (!res.ok) {
+          throw new Error("No se pudo obtener el estado de caja");
+        }
+
+        const data = await res.json();
+
+        setCashOpen(data.isOpen);
+      } catch (error) {
+        console.error(
+          "Error al obtener estado de caja:",
+          error
+        );
+      }
     }
 
     load();
@@ -23,7 +94,11 @@ export default function Navbar() {
     const interval = setInterval(load, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isLoginPage]);
+
+  // =========================================================
+  // MENÚS
+  // =========================================================
 
   function toggle(menu: string) {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -33,6 +108,10 @@ export default function Navbar() {
     setOpenMenu(null);
     setMobileMenuOpen(false);
   }
+
+  // =========================================================
+  // CERRAR SESIÓN
+  // =========================================================
 
   async function logout() {
     try {
@@ -45,6 +124,10 @@ export default function Navbar() {
       console.error("Error al cerrar sesión:", error);
     }
   }
+
+  // =========================================================
+  // CLASES DE MENÚ DESKTOP
+  // =========================================================
 
   function menuClass(name: string) {
     return `
@@ -60,18 +143,37 @@ export default function Navbar() {
     `;
   }
 
+  // =========================================================
+  // CLASES DE ICONOS
+  // =========================================================
+
   function iconClass(name: string) {
     return `transition-transform duration-200 ${
       openMenu === name ? "rotate-180" : ""
     }`;
   }
 
+  // =========================================================
+  // NO MOSTRAR NAVBAR EN LOGIN
+  // =========================================================
+
+  if (isLoginPage) {
+    return null;
+  }
+
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <header className="bg-black text-white shadow-md">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
 
+          {/* ================================================= */}
           {/* LOGO + NOMBRE + ESTADO DE CAJA */}
+          {/* ================================================= */}
+
           <div className="flex items-center gap-3 min-w-0">
 
             <Link
@@ -98,15 +200,23 @@ export default function Navbar() {
                     : "bg-red-600 text-white"
                 }`}
               >
-                {cashOpen ? "Caja abierta" : "Caja cerrada"}
+                {cashOpen
+                  ? "Caja abierta"
+                  : "Caja cerrada"}
               </span>
             )}
           </div>
 
+          {/* ================================================= */}
           {/* DESKTOP */}
+          {/* ================================================= */}
+
           <div className="hidden md:flex items-center gap-5">
 
-            {/* VENTAS */}
+            {/* ================================================= */}
+            {/* VENTAS - TODOS */}
+            {/* ================================================= */}
+
             <Link
               href="/pos"
               onClick={closeMenus}
@@ -115,7 +225,10 @@ export default function Navbar() {
               Ventas
             </Link>
 
-            {/* CAJA */}
+            {/* ================================================= */}
+            {/* CAJA - TODOS */}
+            {/* ================================================= */}
+
             <div className="relative">
               <button
                 onClick={() => toggle("cash")}
@@ -130,6 +243,7 @@ export default function Navbar() {
               </button>
 
               <div className={menuClass("cash")}>
+
                 <Link
                   href="/cash"
                   onClick={closeMenus}
@@ -145,10 +259,14 @@ export default function Navbar() {
                 >
                   Cerrar caja
                 </Link>
+
               </div>
             </div>
 
-            {/* HISTORIAL */}
+            {/* ================================================= */}
+            {/* HISTORIAL - TODOS */}
+            {/* ================================================= */}
+
             <div className="relative">
               <button
                 onClick={() => toggle("history")}
@@ -163,6 +281,7 @@ export default function Navbar() {
               </button>
 
               <div className={menuClass("history")}>
+
                 <Link
                   href="/history"
                   onClick={closeMenus}
@@ -178,59 +297,96 @@ export default function Navbar() {
                 >
                   Historial de caja
                 </Link>
+
               </div>
             </div>
 
-            {/* PRODUCTOS */}
-            <div className="relative">
-              <button
-                onClick={() => toggle("products")}
-                className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
-              >
-                Productos
+            {/* ================================================= */}
+            {/* PRODUCTOS - SOLO ADMIN */}
+            {/* ================================================= */}
 
-                <ChevronDown
-                  size={16}
-                  className={iconClass("products")}
-                />
-              </button>
+            {isAdmin && (
+              <div className="relative">
 
-              <div className={menuClass("products")}>
-                <Link
-                  href="/products"
-                  onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-t-xl transition cursor-pointer"
+                <button
+                  onClick={() => toggle("products")}
+                  className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
                 >
                   Productos
-                </Link>
 
-                <Link
-                  href="/recipes"
-                  onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
-                >
-                  Recetas
-                </Link>
+                  <ChevronDown
+                    size={16}
+                    className={iconClass("products")}
+                  />
+                </button>
 
-                <Link
-                  href="/categories"
-                  onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
-                >
-                  Categorías
-                </Link>
+                <div className={menuClass("products")}>
 
-                <Link
-                  href="/suppliers"
-                  onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-b-xl transition cursor-pointer"
-                >
-                  Proveedores
-                </Link>
+                  <Link
+                    href="/products"
+                    onClick={closeMenus}
+                    className="block px-4 py-3 hover:bg-gray-100 rounded-t-xl transition cursor-pointer"
+                  >
+                    Productos
+                  </Link>
+
+                  <Link
+                    href="/recipes"
+                    onClick={closeMenus}
+                    className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Recetas
+                  </Link>
+
+                  <Link
+                    href="/categories"
+                    onClick={closeMenus}
+                    className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
+                  >
+                    Categorías
+                  </Link>
+
+                  <Link
+                    href="/suppliers"
+                    onClick={closeMenus}
+                    className="block px-4 py-3 hover:bg-gray-100 rounded-b-xl transition cursor-pointer"
+                  >
+                    Proveedores
+                  </Link>
+
+                </div>
               </div>
-            </div>
+            )}
 
+            {/* ================================================= */}
+            {/* USUARIO */}
+            {/* ================================================= */}
+
+            {user && (
+              <div className="flex items-center gap-2 border-l border-gray-700 pl-4">
+
+                <User size={17} />
+
+                <div className="flex flex-col leading-tight">
+
+                  <span className="text-sm font-semibold">
+                    {user.username}
+                  </span>
+
+                  <span className="text-xs text-gray-400">
+                    {user.role === "ADMIN"
+                      ? "Administrador"
+                      : "Empleado"}
+                  </span>
+
+                </div>
+              </div>
+            )}
+
+            {/* ================================================= */}
             {/* LOGOUT */}
+            {/* ================================================= */}
+
             <button
               onClick={logout}
               className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg font-medium transition cursor-pointer"
@@ -238,11 +394,17 @@ export default function Navbar() {
               <LogOut size={16} />
               Cerrar sesión
             </button>
+
           </div>
 
+          {/* ================================================= */}
           {/* MOBILE BUTTON */}
+          {/* ================================================= */}
+
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() =>
+              setMobileMenuOpen(!mobileMenuOpen)
+            }
             className="md:hidden p-2 rounded-lg hover:bg-gray-800 transition cursor-pointer"
             aria-label="Abrir menú"
           >
@@ -252,13 +414,45 @@ export default function Navbar() {
               <Menu size={26} />
             )}
           </button>
+
         </div>
 
+        {/* ================================================= */}
         {/* MOBILE MENU */}
+        {/* ================================================= */}
+
         {mobileMenuOpen && (
           <div className="md:hidden mt-4 pb-2 border-t border-gray-800 pt-4 space-y-2">
 
+            {/* ================================================= */}
+            {/* USUARIO */}
+            {/* ================================================= */}
+
+            {user && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-lg">
+
+                <User size={20} />
+
+                <div className="flex flex-col">
+
+                  <span className="font-semibold">
+                    {user.username}
+                  </span>
+
+                  <span className="text-sm text-gray-400">
+                    {user.role === "ADMIN"
+                      ? "Administrador"
+                      : "Empleado"}
+                  </span>
+
+                </div>
+              </div>
+            )}
+
+            {/* ================================================= */}
             {/* ESTADO CAJA */}
+            {/* ================================================= */}
+
             {cashOpen !== null && (
               <div
                 className={`px-3 py-2 rounded-lg text-sm font-semibold ${
@@ -267,12 +461,72 @@ export default function Navbar() {
                     : "bg-red-600"
                 }`}
               >
-                {cashOpen ? "● Caja abierta" : "● Caja cerrada"}
+                {cashOpen
+                  ? "● Caja abierta"
+                  : "● Caja cerrada"}
               </div>
             )}
 
-            {/* HISTORIAL */}
+            {/* ================================================= */}
+            {/* VENTAS - TODOS */}
+            {/* ================================================= */}
+
+            <Link
+              href="/pos"
+              onClick={closeMenus}
+              className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+            >
+              Ventas
+            </Link>
+
+            {/* ================================================= */}
+            {/* CAJA - TODOS */}
+            {/* ================================================= */}
+
             <div>
+
+              <button
+                onClick={() => toggle("mobile-cash")}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+              >
+                <span>Caja</span>
+
+                <ChevronDown
+                  size={18}
+                  className={iconClass("mobile-cash")}
+                />
+              </button>
+
+              {openMenu === "mobile-cash" && (
+                <div className="mt-1 ml-3 space-y-1">
+
+                  <Link
+                    href="/cash"
+                    onClick={closeMenus}
+                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                  >
+                    Abrir caja
+                  </Link>
+
+                  <Link
+                    href="/cash/close"
+                    onClick={closeMenus}
+                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                  >
+                    Cerrar caja
+                  </Link>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* ================================================= */}
+            {/* HISTORIAL - TODOS */}
+            {/* ================================================= */}
+
+            <div>
+
               <button
                 onClick={() => toggle("mobile-history")}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
@@ -287,6 +541,7 @@ export default function Navbar() {
 
               {openMenu === "mobile-history" && (
                 <div className="mt-1 ml-3 space-y-1">
+
                   <Link
                     href="/history"
                     onClick={closeMenus}
@@ -302,62 +557,80 @@ export default function Navbar() {
                   >
                     Historial de caja
                   </Link>
+
                 </div>
               )}
+
             </div>
 
-            {/* PRODUCTOS */}
-            <div>
-              <button
-                onClick={() => toggle("mobile-products")}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-              >
-                <span>Productos</span>
+            {/* ================================================= */}
+            {/* PRODUCTOS - SOLO ADMIN */}
+            {/* ================================================= */}
 
-                <ChevronDown
-                  size={18}
-                  className={iconClass("mobile-products")}
-                />
-              </button>
+            {isAdmin && (
+              <div>
 
-              {openMenu === "mobile-products" && (
-                <div className="mt-1 ml-3 space-y-1">
-                  <Link
-                    href="/products"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Productos
-                  </Link>
+                <button
+                  onClick={() =>
+                    toggle("mobile-products")
+                  }
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                >
+                  <span>Productos</span>
 
-                  <Link
-                    href="/recipes"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Recetas
-                  </Link>
+                  <ChevronDown
+                    size={18}
+                    className={iconClass(
+                      "mobile-products"
+                    )}
+                  />
+                </button>
 
-                  <Link
-                    href="/categories"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Categorías
-                  </Link>
+                {openMenu === "mobile-products" && (
+                  <div className="mt-1 ml-3 space-y-1">
 
-                  <Link
-                    href="/suppliers"
-                    onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    Proveedores
-                  </Link>
-                </div>
-              )}
-            </div>
+                    <Link
+                      href="/products"
+                      onClick={closeMenus}
+                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    >
+                      Productos
+                    </Link>
 
+                    <Link
+                      href="/recipes"
+                      onClick={closeMenus}
+                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    >
+                      Recetas
+                    </Link>
+
+                    <Link
+                      href="/categories"
+                      onClick={closeMenus}
+                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    >
+                      Categorías
+                    </Link>
+
+                    <Link
+                      href="/suppliers"
+                      onClick={closeMenus}
+                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    >
+                      Proveedores
+                    </Link>
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* ================================================= */}
             {/* LOGOUT */}
+            {/* ================================================= */}
+
             <button
               onClick={logout}
               className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg font-semibold transition mt-3 cursor-pointer"
@@ -365,8 +638,10 @@ export default function Navbar() {
               <LogOut size={18} />
               Cerrar sesión
             </button>
+
           </div>
         )}
+
       </nav>
     </header>
   );

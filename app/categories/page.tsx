@@ -94,8 +94,22 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* NO RESULTS */}
-      {categories.length > 0 && filteredCategories.length === 0 ? (
+      {/* SIN CATEGORÍAS */}
+      {categories.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center shadow-sm">
+          <p className="text-gray-500">
+            No hay categorías registradas.
+          </p>
+
+          <Link
+            href="/categories/new"
+            className="inline-flex items-center justify-center mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition"
+          >
+            Crear primera categoría
+          </Link>
+        </div>
+      ) : filteredCategories.length === 0 ? (
+        /* NO RESULTS */
         <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center shadow-sm">
           <p className="text-gray-600 font-medium">
             No se encontraron categorías.

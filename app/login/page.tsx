@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 
 export default function LoginPage() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,10 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({
+          username,
+          password,
+        }),
       });
 
       const data = await response.json();
@@ -38,9 +42,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6">
+    <main className="h-screen overflow-hidden flex items-center justify-center px-4 sm:px-6">
       <div className="w-full max-w-md">
+
         <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-5 sm:p-8">
+
           {/* HEADER */}
           <div className="text-center mb-7 sm:mb-8">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-2xl">
@@ -58,6 +64,29 @@ export default function LoginPage() {
 
           {/* FORMULARIO */}
           <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* USUARIO */}
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Usuario
+              </label>
+
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Ingresá tu usuario"
+                autoComplete="username"
+                required
+                className="w-full rounded-xl border border-slate-300 px-4 py-3.5 sm:py-3 outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+              />
+            </div>
+
+            {/* CONTRASEÑA */}
             <div>
               <label
                 htmlFor="password"
@@ -70,9 +99,7 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="Ingresá tu contraseña"
                 autoComplete="current-password"
                 required
@@ -80,12 +107,14 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* ERROR */}
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
 
+            {/* BOTÓN */}
             <button
               type="submit"
               disabled={loading}
@@ -93,6 +122,7 @@ export default function LoginPage() {
             >
               {loading ? "Ingresando..." : "Ingresar"}
             </button>
+
           </form>
         </div>
       </div>

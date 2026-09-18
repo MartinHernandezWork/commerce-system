@@ -50,7 +50,9 @@ export default function RecipesPage() {
 
     if (!searchText) return true;
 
-    const recipeNameMatch = recipe.name.toLowerCase().includes(searchText);
+    const recipeNameMatch = recipe.name
+      .toLowerCase()
+      .includes(searchText);
 
     const ingredientMatch = recipe.items.some((item) =>
       item.product.name.toLowerCase().includes(searchText),
@@ -112,8 +114,17 @@ export default function RecipesPage() {
 
       {/* EMPTY */}
       {!loading && recipes.length === 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-          <p className="text-gray-500">No hay recetas creadas</p>
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-10 text-center shadow-sm">
+          <p className="text-gray-500">
+            No hay recetas registradas.
+          </p>
+
+          <Link
+            href="/recipes/new"
+            className="inline-flex items-center justify-center mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition"
+          >
+            Crear primera receta
+          </Link>
         </div>
       )}
 
@@ -145,7 +156,9 @@ export default function RecipesPage() {
 
             <p className="text-sm text-gray-500 mt-2">
               {filteredRecipes.length === recipes.length
-                ? `${recipes.length} receta${recipes.length !== 1 ? "s" : ""}`
+                ? `${recipes.length} receta${
+                    recipes.length !== 1 ? "s" : ""
+                  }`
                 : `Mostrando ${filteredRecipes.length} de ${
                     recipes.length
                   } recetas`}
@@ -184,7 +197,10 @@ export default function RecipesPage() {
                     {/* IMAGEN */}
                     <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 bg-gray-100 rounded-xl overflow-hidden">
                       <Image
-                        src={recipe.imageUrl || "/uploads/placeholder.jpg"}
+                        src={
+                          recipe.imageUrl ||
+                          "/uploads/placeholder.jpg"
+                        }
                         alt={recipe.name}
                         fill
                         sizes="(max-width: 640px) 96px, 112px"
@@ -207,7 +223,9 @@ export default function RecipesPage() {
                         </div>
 
                         <div className="text-sm text-gray-500 sm:text-right shrink-0">
-                          {new Date(recipe.createdAt).toLocaleDateString()}
+                          {new Date(
+                            recipe.createdAt,
+                          ).toLocaleDateString()}
                         </div>
                       </div>
                     </div>

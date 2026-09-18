@@ -1,9 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdmin, requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 // GET → listar productos
+// ADMIN + EMPLOYEE
 export async function GET(request: Request) {
   try {
+    await requireAuth();
+
     const { searchParams } = new URL(request.url);
 
     const onlyPOS = searchParams.get("pos");
@@ -29,6 +33,13 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("GET /products error:", err);
 
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Error cargando productos" },
       { status: 500 },
@@ -37,8 +48,11 @@ export async function GET(request: Request) {
 }
 
 // POST → crear producto
+// ADMIN solamente
 export async function POST(request: Request) {
   try {
+    await requireAdmin();
+
     const body = await request.json();
 
     const {
@@ -110,6 +124,21 @@ export async function POST(request: Request) {
     return NextResponse.json(product);
   } catch (err) {
     console.error("POST /products error:", err);
+
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return NextResponse.json(
+        { error: "No tenés permisos para crear productos" },
+        { status: 403 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Error al crear producto" },
       { status: 500 },
@@ -118,13 +147,19 @@ export async function POST(request: Request) {
 }
 
 // PUT → actualizar producto
+// ADMIN solamente
 export async function PUT(request: Request) {
   try {
+    await requireAdmin();
+
     const body = await request.json();
     const { id, ...rest } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+      return NextResponse.json(
+        { error: "ID requerido" },
+        { status: 400 },
+      );
     }
 
     const numId = Number(id);
@@ -137,7 +172,9 @@ export async function PUT(request: Request) {
 
       if (existing && existing.id !== numId) {
         return NextResponse.json(
-          { error: `El código de barras "${rest.barcode}" ya existe.` },
+          {
+            error: `El código de barras "${rest.barcode}" ya existe.`,
+          },
           { status: 400 },
         );
       }
@@ -146,32 +183,46 @@ export async function PUT(request: Request) {
     console.log("BODY UPDATE:", rest);
 
     const updated = await prisma.product.update({
-      where: { id: numId },
+      where: {
+        id: numId,
+      },
       data: {
         name: rest.name,
         description: rest.description || null,
         barcode: rest.barcode || null,
         sku: rest.sku || null,
 
-        stock: rest.stock !== undefined ? Number(rest.stock) : undefined,
+        stock:
+          rest.stock !== undefined
+            ? Number(rest.stock)
+            : undefined,
 
-        unitType: rest.unitType !== undefined ? rest.unitType : undefined,
+        unitType:
+          rest.unitType !== undefined
+            ? rest.unitType
+            : undefined,
 
         costPrice:
-          rest.costPrice !== undefined ? Number(rest.costPrice) : undefined,
+          rest.costPrice !== undefined
+            ? Number(rest.costPrice)
+            : undefined,
 
         salePrice:
-          rest.salePrice !== undefined ? Number(rest.salePrice) : undefined,
+          rest.salePrice !== undefined
+            ? Number(rest.salePrice)
+            : undefined,
 
         showInPOS: rest.showInPOS,
 
         supplierId:
-          rest.supplierId && !isNaN(Number(rest.supplierId))
+          rest.supplierId &&
+          !isNaN(Number(rest.supplierId))
             ? Number(rest.supplierId)
             : null,
 
         categoryId:
-          rest.categoryId && !isNaN(Number(rest.categoryId))
+          rest.categoryId &&
+          !isNaN(Number(rest.categoryId))
             ? Number(rest.categoryId)
             : null,
 
@@ -182,6 +233,21 @@ export async function PUT(request: Request) {
     return NextResponse.json(updated);
   } catch (err) {
     console.error("PUT /products error:", err);
+
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return NextResponse.json(
+        { error: "No tenés permisos para actualizar productos" },
+        { status: 403 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Error al actualizar producto" },
       { status: 500 },
@@ -190,13 +256,19 @@ export async function PUT(request: Request) {
 }
 
 // DELETE → soft delete de producto
+// ADMIN solamente
 export async function DELETE(request: Request) {
   try {
+    await requireAdmin();
+
     const body = await request.json();
     const { id } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+      return NextResponse.json(
+        { error: "ID requerido" },
+        { status: 400 },
+      );
     }
 
     const deleted = await prisma.product.update({
@@ -211,6 +283,20 @@ export async function DELETE(request: Request) {
     return NextResponse.json(deleted);
   } catch (err) {
     console.error("DELETE /products error:", err);
+
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 },
+      );
+    }
+
+    if (err instanceof Error && err.message === "FORBIDDEN") {
+      return NextResponse.json(
+        { error: "No tenés permisos para eliminar productos" },
+        { status: 403 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Error al eliminar producto" },
