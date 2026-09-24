@@ -280,6 +280,27 @@ model User {
   @@map("user")
 }
 
+model Note {
+  id         Int      @id @default(autoincrement())
+  authorName String
+  type       NoteType
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([authorName])
+  @@map("note")
+}
+
+enum NoteType {
+  MERCADERIA_INGRESO
+  MERCADERIA_PERDIDA
+  CAMBIO
+  OTRA
+}
+
+
 enum StockMovementType {
   PURCHASE
   SALE

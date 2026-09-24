@@ -15,6 +15,7 @@ import {
   History,
   Package,
   Circle,
+  StickyNote,
 } from "lucide-react";
 
 type UserData = {
@@ -143,6 +144,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur">
       <nav className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-16 flex items-center justify-between gap-4">
+          {/* LOGO */}
+
           <div className="flex items-center min-w-0">
             <Link
               href="/"
@@ -164,6 +167,8 @@ export default function Navbar() {
               </div>
             </Link>
 
+            {/* ESTADO CAJA */}
+
             {cashOpen !== null && (
               <div className="hidden lg:flex items-center ml-5 pl-5 border-l border-gray-200">
                 <div
@@ -173,12 +178,20 @@ export default function Navbar() {
                       : "bg-amber-50 text-amber-700"
                   }`}
                 >
-                  <Circle size={8} fill="currentColor" strokeWidth={0} />
+                  <Circle
+                    size={8}
+                    fill="currentColor"
+                    strokeWidth={0}
+                  />
                   {cashOpen ? "Caja abierta" : "Caja cerrada"}
                 </div>
               </div>
             )}
           </div>
+
+          {/* =========================
+              DESKTOP NAV
+          ========================= */}
 
           <div className="hidden md:flex items-center gap-1">
             <Link
@@ -203,6 +216,19 @@ export default function Navbar() {
               Órdenes
             </Link>
 
+            <Link
+              href="/notes"
+              onClick={closeMenus}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${navLink(
+                "/notes",
+              )}`}
+            >
+              <StickyNote size={17} />
+              Notas
+            </Link>
+
+            {/* CAJA */}
+
             <div className="relative">
               <button
                 onClick={() => toggle("cash")}
@@ -214,7 +240,10 @@ export default function Navbar() {
               >
                 <Wallet size={17} />
                 Caja
-                <ChevronDown size={15} className={iconClass("cash")} />
+                <ChevronDown
+                  size={15}
+                  className={iconClass("cash")}
+                />
               </button>
 
               <div className={menuClass("cash")}>
@@ -224,9 +253,15 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
                   <Wallet size={17} />
+
                   <div>
-                    <div className="font-semibold text-sm">Abrir caja</div>
-                    <div className="text-xs text-gray-400">Iniciar jornada</div>
+                    <div className="font-semibold text-sm">
+                      Abrir caja
+                    </div>
+
+                    <div className="text-xs text-gray-400">
+                      Iniciar jornada
+                    </div>
                   </div>
                 </Link>
 
@@ -236,8 +271,12 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
                   <Wallet size={17} />
+
                   <div>
-                    <div className="font-semibold text-sm">Cerrar caja</div>
+                    <div className="font-semibold text-sm">
+                      Cerrar caja
+                    </div>
+
                     <div className="text-xs text-gray-400">
                       Finalizar jornada
                     </div>
@@ -245,6 +284,8 @@ export default function Navbar() {
                 </Link>
               </div>
             </div>
+
+            {/* HISTORIAL */}
 
             <div className="relative">
               <button
@@ -257,7 +298,11 @@ export default function Navbar() {
               >
                 <History size={17} />
                 Historial
-                <ChevronDown size={15} className={iconClass("history")} />
+
+                <ChevronDown
+                  size={15}
+                  className={iconClass("history")}
+                />
               </button>
 
               <div className={menuClass("history")}>
@@ -267,10 +312,12 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
                   <History size={17} />
+
                   <div>
                     <div className="font-semibold text-sm">
                       Historial de ventas
                     </div>
+
                     <div className="text-xs text-gray-400">
                       Consultar operaciones
                     </div>
@@ -283,10 +330,12 @@ export default function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
                   <Wallet size={17} />
+
                   <div>
                     <div className="font-semibold text-sm">
                       Historial de caja
                     </div>
+
                     <div className="text-xs text-gray-400">
                       Movimientos de caja
                     </div>
@@ -294,6 +343,8 @@ export default function Navbar() {
                 </Link>
               </div>
             </div>
+
+            {/* ADMINISTRACIÓN */}
 
             {isAdmin && (
               <div className="relative">
@@ -306,8 +357,13 @@ export default function Navbar() {
                   }`}
                 >
                   <Package size={17} />
+
                   Administración
-                  <ChevronDown size={15} className={iconClass("products")} />
+
+                  <ChevronDown
+                    size={15}
+                    className={iconClass("products")}
+                  />
                 </button>
 
                 <div className={menuClass("products")}>
@@ -317,8 +373,12 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
                     <Package size={17} />
+
                     <div>
-                      <div className="font-semibold text-sm">Productos</div>
+                      <div className="font-semibold text-sm">
+                        Productos
+                      </div>
+
                       <div className="text-xs text-gray-400">
                         Stock y precios
                       </div>
@@ -331,9 +391,15 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
                     <Package size={17} />
+
                     <div>
-                      <div className="font-semibold text-sm">Recetas</div>
-                      <div className="text-xs text-gray-400">Preparaciones</div>
+                      <div className="font-semibold text-sm">
+                        Recetas
+                      </div>
+
+                      <div className="text-xs text-gray-400">
+                        Preparaciones
+                      </div>
                     </div>
                   </Link>
 
@@ -343,9 +409,15 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
                     <Package size={17} />
+
                     <div>
-                      <div className="font-semibold text-sm">Categorías</div>
-                      <div className="text-xs text-gray-400">Organización</div>
+                      <div className="font-semibold text-sm">
+                        Categorías
+                      </div>
+
+                      <div className="text-xs text-gray-400">
+                        Organización
+                      </div>
                     </div>
                   </Link>
 
@@ -355,8 +427,12 @@ export default function Navbar() {
                     className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
                     <Package size={17} />
+
                     <div>
-                      <div className="font-semibold text-sm">Proveedores</div>
+                      <div className="font-semibold text-sm">
+                        Proveedores
+                      </div>
+
                       <div className="text-xs text-gray-400">
                         Contactos y compras
                       </div>
@@ -366,6 +442,10 @@ export default function Navbar() {
               </div>
             )}
           </div>
+
+          {/* =========================
+              USER DESKTOP
+          ========================= */}
 
           <div className="hidden md:flex items-center gap-3">
             {user && (
@@ -380,7 +460,9 @@ export default function Navbar() {
                   </div>
 
                   <div className="text-[11px] font-medium text-gray-400">
-                    {user.role === "ADMIN" ? "Administrador" : "Empleado"}
+                    {user.role === "ADMIN"
+                      ? "Administrador"
+                      : "Empleado"}
                   </div>
                 </div>
               </div>
@@ -395,17 +477,29 @@ export default function Navbar() {
             </button>
           </div>
 
+          {/* MOBILE BUTTON */}
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
             aria-label="Abrir menú"
           >
-            {mobileMenuOpen ? <X size={23} /> : <Menu size={23} />}
+            {mobileMenuOpen ? (
+              <X size={23} />
+            ) : (
+              <Menu size={23} />
+            )}
           </button>
         </div>
 
+        {/* =========================
+            MOBILE MENU
+        ========================= */}
+
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-100 py-4 space-y-2">
+            {/* USUARIO */}
+
             {user && (
               <div className="flex items-center gap-3 p-3 mb-3 rounded-2xl bg-gray-50 border border-gray-100">
                 <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
@@ -413,14 +507,20 @@ export default function Navbar() {
                 </div>
 
                 <div className="leading-tight">
-                  <div className="font-bold text-gray-900">{user.username}</div>
+                  <div className="font-bold text-gray-900">
+                    {user.username}
+                  </div>
 
                   <div className="text-xs text-gray-400">
-                    {user.role === "ADMIN" ? "Administrador" : "Empleado"}
+                    {user.role === "ADMIN"
+                      ? "Administrador"
+                      : "Empleado"}
                   </div>
                 </div>
               </div>
             )}
+
+            {/* ESTADO CAJA */}
 
             {cashOpen !== null && (
               <div
@@ -430,10 +530,17 @@ export default function Navbar() {
                     : "bg-amber-50 text-amber-700"
                 }`}
               >
-                <Circle size={8} fill="currentColor" strokeWidth={0} />
+                <Circle
+                  size={8}
+                  fill="currentColor"
+                  strokeWidth={0}
+                />
+
                 {cashOpen ? "Caja abierta" : "Caja cerrada"}
               </div>
             )}
+
+            {/* VENTAS */}
 
             <Link
               href="/pos"
@@ -446,6 +553,8 @@ export default function Navbar() {
               Ventas
             </Link>
 
+            {/* ÓRDENES */}
+
             <Link
               href="/orders"
               onClick={closeMenus}
@@ -457,6 +566,21 @@ export default function Navbar() {
               Órdenes
             </Link>
 
+            {/* NOTAS */}
+
+            <Link
+              href="/notes"
+              onClick={closeMenus}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${navLink(
+                "/notes",
+              )}`}
+            >
+              <StickyNote size={18} />
+              Notas
+            </Link>
+
+            {/* CAJA */}
+
             <div>
               <button
                 onClick={() => toggle("mobile-cash")}
@@ -467,7 +591,10 @@ export default function Navbar() {
                   Caja
                 </span>
 
-                <ChevronDown size={18} className={iconClass("mobile-cash")} />
+                <ChevronDown
+                  size={18}
+                  className={iconClass("mobile-cash")}
+                />
               </button>
 
               {openMenu === "mobile-cash" && (
@@ -490,6 +617,8 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* HISTORIAL */}
 
             <div>
               <button
@@ -527,6 +656,8 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* ADMINISTRACIÓN */}
 
             {isAdmin && (
               <div>
@@ -582,6 +713,8 @@ export default function Navbar() {
                 )}
               </div>
             )}
+
+            {/* LOGOUT */}
 
             <button
               onClick={logout}
