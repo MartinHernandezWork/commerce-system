@@ -19,6 +19,11 @@ type Product = {
   unitType: string;
 };
 
+type Category = {
+  id: number;
+  name: string;
+};
+
 type RecipeItem = {
   productId: number;
   name: string;
@@ -30,9 +35,11 @@ export default function NewRecipePage() {
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [categoryId, setCategoryId] = useState("");
 
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -44,12 +51,34 @@ export default function NewRecipePage() {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
+
+  async function loadCategories() {
+    try {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data.error || "Error cargando categorías");
+        return;
+      }
+
+      setCategories(data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function loadProducts() {
     try {
       const res = await fetch("/api/products");
       const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data.error || "Error cargando productos");
+        return;
+      }
 
       setProducts(data);
     } catch (error) {
@@ -187,6 +216,11 @@ export default function NewRecipePage() {
       return;
     }
 
+    if (!categoryId) {
+      alert("Seleccioná una categoría para la receta.");
+      return;
+    }
+
     if (items.length === 0) {
       alert("Agregá al menos un ingrediente");
       return;
@@ -206,6 +240,7 @@ export default function NewRecipePage() {
         body: JSON.stringify({
           name,
           price: Number(price),
+          categoryId: Number(categoryId),
           imageUrl,
           items: items.map((item) => ({
             productId: item.productId,
@@ -265,10 +300,7 @@ export default function NewRecipePage() {
       {/* CONTENIDO */}
       <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-4xl">
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* INFORMACIÓN BÁSICA */}
             <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
@@ -283,13 +315,14 @@ export default function NewRecipePage() {
                     </h2>
 
                     <p className="mt-0.5 text-xs font-medium text-slate-400">
-                      Nombre y precio de venta
+                      Nombre, precio y categoría de la receta
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+              <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
+                {/* NOMBRE */}
                 <div>
                   <label className="mb-1.5 block text-sm font-bold text-slate-700">
                     Nombre
@@ -304,6 +337,7 @@ export default function NewRecipePage() {
                   />
                 </div>
 
+                {/* PRECIO */}
                 <div>
                   <label className="mb-1.5 block text-sm font-bold text-slate-700">
                     Precio de venta
@@ -325,6 +359,44 @@ export default function NewRecipePage() {
                       className="w-full rounded-xl border border-green-200 bg-green-50/30 py-3 pl-8 pr-4 text-sm font-black text-green-700 outline-none transition placeholder:text-green-300 focus:border-green-400 focus:ring-4 focus:ring-green-100"
                     />
                   </div>
+                </div>
+
+                {/* CATEGORÍA */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Categoría
+                  </label>
+
+                  <select
+                    required
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                  >
+                    <option value="">
+                      Seleccionar categoría
+                    </option>
+
+                    {categories
+                      .filter((category) => {
+                        const categoryName = category.name
+                          .toLowerCase()
+                          .trim();
+
+                        return (
+                          categoryName !== "aderezos" &&
+                          categoryName !== "descartables"
+                        );
+                      })
+                      .map((category) => (
+                        <option
+                          key={category.id}
+                          value={category.id}
+                        >
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               </div>
             </section>

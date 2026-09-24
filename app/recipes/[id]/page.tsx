@@ -19,6 +19,11 @@ type Product = {
   unitType: string;
 };
 
+type Category = {
+  id: number;
+  name: string;
+};
+
 type RecipeItem = {
   productId: number;
   name: string;
@@ -31,11 +36,15 @@ export default function EditRecipePage() {
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [categoryId, setCategoryId] = useState("");
 
-  const [imageUrl, setImageUrl] = useState("/uploads/placeholder.jpg");
+  const [imageUrl, setImageUrl] = useState(
+    "/uploads/placeholder.jpg",
+  );
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState("");
@@ -50,17 +59,55 @@ export default function EditRecipePage() {
 
   async function loadData() {
     try {
-      const productsRes = await fetch("/api/products");
+      const [productsRes, categoriesRes, recipeRes] =
+        await Promise.all([
+          fetch("/api/products"),
+          fetch("/api/categories"),
+          fetch(`/api/recipes/${params.id}`),
+        ]);
+
       const productsData = await productsRes.json();
-
-      setProducts(productsData);
-
-      const recipeRes = await fetch(`/api/recipes/${params.id}`);
+      const categoriesData = await categoriesRes.json();
       const recipeData = await recipeRes.json();
 
-      setName(recipeData.name);
-      setPrice(recipeData.price);
-      setImageUrl(recipeData.imageUrl || "/uploads/placeholder.jpg");
+      if (!productsRes.ok) {
+        throw new Error(
+          productsData?.error || "Error cargando productos",
+        );
+      }
+
+      if (!categoriesRes.ok) {
+        throw new Error(
+          categoriesData?.error ||
+            "Error cargando categorías",
+        );
+      }
+
+      if (!recipeRes.ok) {
+        throw new Error(
+          recipeData?.error || "Error cargando receta",
+        );
+      }
+
+      setProducts(productsData);
+      setCategories(categoriesData);
+
+      setName(recipeData.name || "");
+      setPrice(String(recipeData.price ?? ""));
+
+      // Cargar la categoría actual de la receta
+      setCategoryId(
+        recipeData.categoryId != null
+          ? String(recipeData.categoryId)
+          : recipeData.category?.id != null
+            ? String(recipeData.category.id)
+            : "",
+      );
+
+      setImageUrl(
+        recipeData.imageUrl ||
+          "/uploads/placeholder.jpg",
+      );
 
       setItems(
         recipeData.items.map((item: any) => ({
@@ -72,7 +119,12 @@ export default function EditRecipePage() {
       );
     } catch (error) {
       console.error(error);
-      alert("Error cargando receta");
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Error cargando receta",
+      );
     } finally {
       setLoading(false);
     }
@@ -130,15 +182,24 @@ export default function EditRecipePage() {
   function getQuantityPlaceholder(unitType: string) {
     const normalized = unitType.toLowerCase();
 
-    if (normalized === "unidad" || normalized === "unit") {
+    if (
+      normalized === "unidad" ||
+      normalized === "unit"
+    ) {
       return "Cantidad (un)";
     }
 
-    if (normalized === "gramos" || normalized === "g") {
+    if (
+      normalized === "gramos" ||
+      normalized === "g"
+    ) {
       return "Cantidad (gr)";
     }
 
-    if (normalized === "kilo" || normalized === "kg") {
+    if (
+      normalized === "kilo" ||
+      normalized === "kg"
+    ) {
       return "Cantidad (kg)";
     }
 
@@ -186,11 +247,15 @@ export default function EditRecipePage() {
 
   function removeIngredient(productId: number) {
     setItems((prev) =>
-      prev.filter((item) => item.productId !== productId),
+      prev.filter(
+        (item) => item.productId !== productId,
+      ),
     );
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>,
+  ) {
     e.preventDefault();
 
     if (!name.trim()) {
@@ -203,40 +268,56 @@ export default function EditRecipePage() {
       return;
     }
 
+    if (!categoryId) {
+      alert("La categoría de la receta es obligatoria.");
+      return;
+    }
+
     if (items.length === 0) {
       alert("La receta necesita ingredientes.");
       return;
     }
 
     if (uploadingImage) {
-      alert("Esperá a que termine de procesarse la imagen.");
+      alert(
+        "Esperá a que termine de procesarse la imagen.",
+      );
       return;
     }
 
     try {
-      const res = await fetch(`/api/recipes/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `/api/recipes/${params.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            price: Number(price),
+            categoryId: Number(categoryId),
+            imageUrl,
+            items: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          }),
         },
-        body: JSON.stringify({
-          name: name.trim(),
-          price: Number(price),
-          imageUrl,
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-        }),
-      });
+      );
+
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        alert(data?.error || "Error actualizando receta.");
+        alert(
+          data?.error ||
+            "Error actualizando receta.",
+        );
         return;
       }
 
       alert("Receta actualizada correctamente.");
+
       router.push("/recipes");
     } catch (error) {
       console.error(error);
@@ -275,7 +356,7 @@ export default function EditRecipePage() {
               </h1>
 
               <p className="text-sm text-slate-500">
-                Modificá los ingredientes, precio e imagen
+                Modificá categoría, ingredientes, precio e imagen
               </p>
             </div>
           </div>
@@ -296,6 +377,7 @@ export default function EditRecipePage() {
           onSubmit={handleSubmit}
           className="mx-auto w-full max-w-5xl space-y-5"
         >
+          {/* INFORMACIÓN BÁSICA */}
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5">
               <h2 className="text-lg font-bold text-slate-900">
@@ -307,7 +389,8 @@ export default function EditRecipePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {/* NOMBRE */}
               <div className="space-y-2">
                 <label
                   htmlFor="recipe-name"
@@ -319,12 +402,15 @@ export default function EditRecipePage() {
                 <input
                   id="recipe-name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
                   placeholder="Ej. Pancho completo"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-green-500 focus:ring-4 focus:ring-green-50"
                 />
               </div>
 
+              {/* PRECIO */}
               <div className="space-y-2">
                 <label
                   htmlFor="recipe-price"
@@ -339,14 +425,63 @@ export default function EditRecipePage() {
                   min="0"
                   step="1"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) =>
+                    setPrice(e.target.value)
+                  }
                   placeholder="Ej. 5000"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-green-500 focus:ring-4 focus:ring-green-50"
                 />
               </div>
+
+              {/* CATEGORÍA */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="recipe-category"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Categoría
+                </label>
+
+                <select
+                  id="recipe-category"
+                  required
+                  value={categoryId}
+                  onChange={(e) =>
+                    setCategoryId(e.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-50"
+                >
+                  <option value="">
+                    Seleccionar categoría
+                  </option>
+
+                  {categories
+                    .filter((category) => {
+                      const categoryName =
+                        category.name
+                          .toLowerCase()
+                          .trim();
+
+                      return (
+                        categoryName !== "aderezos" &&
+                        categoryName !==
+                          "descartables"
+                      );
+                    })
+                    .map((category) => (
+                      <option
+                        key={category.id}
+                        value={category.id}
+                      >
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
           </section>
 
+          {/* IMAGEN */}
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5">
               <div className="flex items-center gap-3">
@@ -360,7 +495,8 @@ export default function EditRecipePage() {
                   </h2>
 
                   <p className="text-sm text-slate-500">
-                    Podés cambiar la imagen. Se optimiza automáticamente.
+                    Podés cambiar la imagen. Se optimiza
+                    automáticamente.
                   </p>
                 </div>
               </div>
@@ -370,7 +506,9 @@ export default function EditRecipePage() {
               <div className="relative flex h-52 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                 <Image
                   src={imageUrl}
-                  alt={name || "Imagen de receta"}
+                  alt={
+                    name || "Imagen de receta"
+                  }
                   unoptimized
                   fill
                   sizes="384px"
@@ -410,19 +548,22 @@ export default function EditRecipePage() {
                 )}
 
                 {!uploadingImage &&
-                  imageUrl !== "/uploads/placeholder.jpg" && (
+                  imageUrl !==
+                    "/uploads/placeholder.jpg" && (
                     <p className="text-sm font-medium text-green-600">
                       Imagen lista para guardar
                     </p>
                   )}
 
                 <p className="text-xs text-slate-400">
-                  JPG, PNG, WEBP u otro formato de imagen · Máximo 5 MB
+                  JPG, PNG, WEBP u otro formato de
+                  imagen · Máximo 5 MB
                 </p>
               </div>
             </div>
           </section>
 
+          {/* INGREDIENTES */}
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5">
               <h2 className="text-lg font-bold text-slate-900">
@@ -430,20 +571,28 @@ export default function EditRecipePage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Administrá los productos que componen esta receta.
+                Administrá los productos que componen
+                esta receta.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_190px_auto]">
               <select
                 value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
+                onChange={(e) =>
+                  setSelectedProduct(e.target.value)
+                }
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-50"
               >
-                <option value="">Seleccionar producto</option>
+                <option value="">
+                  Seleccionar producto
+                </option>
 
                 {products.map((product) => (
-                  <option key={product.id} value={product.id}>
+                  <option
+                    key={product.id}
+                    value={product.id}
+                  >
                     {product.name}
                   </option>
                 ))}
@@ -454,13 +603,18 @@ export default function EditRecipePage() {
                 min="0"
                 step="1"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) =>
+                  setQuantity(e.target.value)
+                }
                 placeholder={
                   selectedProduct
                     ? getQuantityPlaceholder(
                         products.find(
                           (product) =>
-                            product.id === Number(selectedProduct),
+                            product.id ===
+                            Number(
+                              selectedProduct,
+                            ),
                         )?.unitType || "",
                       )
                     : "Cantidad"
@@ -490,7 +644,8 @@ export default function EditRecipePage() {
                   </p>
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Seleccioná un producto y agregalo a la receta.
+                    Seleccioná un producto y agregalo a
+                    la receta.
                   </p>
                 </div>
               ) : (
@@ -512,7 +667,8 @@ export default function EditRecipePage() {
                         <p className="mt-1 text-sm text-slate-500">
                           Cantidad:{" "}
                           <span className="font-semibold text-slate-700">
-                            {item.quantity} {item.unitType}
+                            {item.quantity}{" "}
+                            {item.unitType}
                           </span>
                         </p>
                       </div>
@@ -521,7 +677,9 @@ export default function EditRecipePage() {
                     <button
                       type="button"
                       onClick={() =>
-                        removeIngredient(item.productId)
+                        removeIngredient(
+                          item.productId,
+                        )
                       }
                       className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:w-auto"
                     >
@@ -545,6 +703,7 @@ export default function EditRecipePage() {
             )}
           </section>
 
+          {/* BOTONES */}
           <div className="flex flex-col-reverse gap-3 pb-2 sm:flex-row sm:justify-end">
             <button
               type="button"
