@@ -8,19 +8,18 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
-  sku         String?  @unique
-  barcode     String?  @unique
+  sku         String?   @unique
+  barcode     String?   @unique
   description String?
-  stock       Float    @default(0)
-  showInPOS   Boolean  @default(true)
-  unitType    UnitType @default(UNIT)
+  stock       Float     @default(0)
+  showInPOS   Boolean   @default(true)
+  unitType    UnitType  @default(UNIT)
   costPrice   Float
   salePrice   Float
   imageUrl    String?
-
-  deletedAt DateTime?
+  deletedAt   DateTime?
 
   supplierId Int?
   supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
@@ -31,19 +30,21 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sales          Sale[]
-  stockMovements StockMovement[]
-  recipeItems    RecipeItem[]
+  sales                Sale[]
+  stockMovements       StockMovement[]
+  recipeItems          RecipeItem[]
+  orderItems           OrderItem[]
+  orderItemIngredients OrderItemIngredient[]
+  orderItemExtras      OrderItemExtra[]
 
   @@map("product")
 }
 
 model Recipe {
-  id       Int     @id @default(autoincrement())
-  name     String
-  price    Float   @default(0)
-  imageUrl String?
-
+  id        Int       @id @default(autoincrement())
+  name      String
+  price     Float     @default(0)
+  imageUrl  String?
   deletedAt DateTime?
 
   categoryId Int?
@@ -53,6 +54,7 @@ model Recipe {
 
   items       RecipeItem[]
   recipeSales RecipeSale[]
+  orderItems  OrderItem[]
 
   @@map("recipe")
 }
@@ -60,7 +62,8 @@ model Recipe {
 model RecipeItem {
   id Int @id @default(autoincrement())
 
-  quantity  Float
+  quantity Float
+
   recipeId  Int
   productId Int
 
@@ -71,7 +74,8 @@ model RecipeItem {
 }
 
 model RecipeSale {
-  id       Int    @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   recipeId Int
   recipe   Recipe @relation(fields: [recipeId], references: [id])
 
@@ -114,16 +118,17 @@ model Category {
 }
 
 model Sale {
-  id        Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   productName String
   unitPrice   Float
+  quantity    Float
+  totalPrice  Float
 
-  quantity   Float
-  totalPrice Float
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   groupId Int?
   group   SaleGroup? @relation(fields: [groupId], references: [id])
@@ -142,25 +147,105 @@ model SaleGroup {
 
   paymentMethod PaymentMethod @default(CASH)
 
-  sales Sale[]
+  cashAmount     Float @default(0)
+  transferAmount Float @default(0)
+  cashReceived   Float @default(0)
+  change         Float @default(0)
 
-  cashId      Int?
-  cash        CashRegister? @relation(fields: [cashId], references: [id])
+  sales       Sale[]
   recipeSales RecipeSale[]
 
+  cashId Int?
+  cash   CashRegister? @relation(fields: [cashId], references: [id])
+
+  order Order?
+
   @@map("salegroup")
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  groupId Int       @unique
+  group   SaleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  status OrderStatus @default(PENDING)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  items OrderItem[]
+
+  @@map("order")
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  type OrderItemType
+
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  recipeId Int?
+  recipe   Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  name      String
+  quantity  Float
+  unitPrice Float
+
+  ingredients OrderItemIngredient[]
+  extras      OrderItemExtra[]
+
+  @@map("orderitem")
+}
+
+model OrderItemIngredient {
+  id Int @id @default(autoincrement())
+
+  orderItemId Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name     String
+  quantity Float
+
+  @@map("orderitemingredient")
+}
+
+model OrderItemExtra {
+  id Int @id @default(autoincrement())
+
+  orderItemId Int
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name String
+
+  unitIndex Int @default(0)
+
+  quantity Float @default(1)
+
+  category ExtraCategory
+
+  @@map("orderitemextra")
 }
 
 model CashRegister {
   id Int @id @default(autoincrement())
 
-  openedAt DateTime @default(now())
-
+  openedAt DateTime  @default(now())
   closedAt DateTime?
 
   initial Float
-
-  final Float?
+  final   Float?
 
   saleGroups SaleGroup[]
 
@@ -173,15 +258,26 @@ model StockMovement {
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  type StockMovementType
-
+  type     StockMovementType
   quantity Float
-
-  note String?
+  note     String?
 
   createdAt DateTime @default(now())
 
   @@map("stockmovement")
+}
+
+model User {
+  id Int @id @default(autoincrement())
+
+  username     String   @unique
+  passwordHash String
+  role         UserRole @default(EMPLOYEE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user")
 }
 
 enum StockMovementType {
@@ -191,26 +287,31 @@ enum StockMovementType {
   LOSS
 }
 
+enum OrderStatus {
+  PENDING
+  COMPLETED
+}
+
+enum OrderItemType {
+  PRODUCT
+  RECIPE
+}
+
+enum ExtraCategory {
+  ADEREZO
+  DESCARTABLE
+}
+
 enum PaymentMethod {
   CASH
   TRANSFER
+  MIXED
 }
 
 enum UnitType {
   UNIT
   G
   KG
-}
-
-model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  passwordHash String
-  role         UserRole @default(EMPLOYEE)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("user")
 }
 
 enum UserRole {

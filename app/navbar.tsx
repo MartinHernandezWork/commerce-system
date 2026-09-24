@@ -9,6 +9,12 @@ import {
   X,
   LogOut,
   User,
+  ShoppingCart,
+  ClipboardList,
+  Wallet,
+  History,
+  Package,
+  Circle,
 } from "lucide-react";
 
 type UserData = {
@@ -23,15 +29,10 @@ export default function Navbar() {
   const [cashOpen, setCashOpen] = useState<boolean | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const [user, setUser] = useState<UserData | null>(null);
 
   const isLoginPage = pathname === "/login";
   const isAdmin = user?.role === "ADMIN";
-
-  // =========================================================
-  // OBTENER USUARIO ACTUAL
-  // =========================================================
 
   useEffect(() => {
     if (isLoginPage) {
@@ -49,20 +50,14 @@ export default function Navbar() {
         }
 
         const data = await res.json();
-
         setUser(data);
-      } catch (error) {
-        console.error("Error al obtener el usuario:", error);
+      } catch {
         setUser(null);
       }
     }
 
     loadUser();
   }, [isLoginPage]);
-
-  // =========================================================
-  // ESTADO DE CAJA
-  // =========================================================
 
   useEffect(() => {
     if (isLoginPage) {
@@ -79,13 +74,9 @@ export default function Navbar() {
         }
 
         const data = await res.json();
-
-        setCashOpen(data.isOpen);
-      } catch (error) {
-        console.error(
-          "Error al obtener estado de caja:",
-          error
-        );
+        setCashOpen(Boolean(data.isOpen));
+      } catch {
+        setCashOpen(null);
       }
     }
 
@@ -96,10 +87,6 @@ export default function Navbar() {
     return () => clearInterval(interval);
   }, [isLoginPage]);
 
-  // =========================================================
-  // MENÚS
-  // =========================================================
-
   function toggle(menu: string) {
     setOpenMenu(openMenu === menu ? null : menu);
   }
@@ -109,10 +96,6 @@ export default function Navbar() {
     setMobileMenuOpen(false);
   }
 
-  // =========================================================
-  // CERRAR SESIÓN
-  // =========================================================
-
   async function logout() {
     try {
       await fetch("/api/auth/logout", {
@@ -120,21 +103,18 @@ export default function Navbar() {
       });
 
       window.location.href = "/login";
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+    } catch {
+      window.location.href = "/login";
     }
   }
 
-  // =========================================================
-  // CLASES DE MENÚ DESKTOP
-  // =========================================================
-
   function menuClass(name: string) {
     return `
-      absolute right-0 mt-2 w-48 rounded-xl shadow-lg
-      bg-white text-black border border-gray-100
+      absolute right-0 top-full mt-2 w-56 rounded-2xl
+      bg-white text-gray-800 border border-gray-200
+      shadow-xl shadow-gray-200/50
       transition-all duration-200 origin-top
-      z-50
+      z-50 overflow-hidden
       ${
         openMenu === name
           ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
@@ -143,367 +123,359 @@ export default function Navbar() {
     `;
   }
 
-  // =========================================================
-  // CLASES DE ICONOS
-  // =========================================================
-
   function iconClass(name: string) {
     return `transition-transform duration-200 ${
       openMenu === name ? "rotate-180" : ""
     }`;
   }
 
-  // =========================================================
-  // NO MOSTRAR NAVBAR EN LOGIN
-  // =========================================================
+  function navLink(path: string) {
+    return pathname === path
+      ? "bg-green-50 text-green-700"
+      : "text-gray-600 hover:bg-gray-50 hover:text-green-700";
+  }
 
   if (isLoginPage) {
     return null;
   }
 
-  // =========================================================
-  // RENDER
-  // =========================================================
-
   return (
-    <header className="bg-black text-white shadow-md">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
-        <div className="flex items-center justify-between">
-
-          {/* ================================================= */}
-          {/* LOGO + NOMBRE + ESTADO DE CAJA */}
-          {/* ================================================= */}
-
-          <div className="flex items-center gap-3 min-w-0">
-
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <nav className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center min-w-0">
             <Link
               href="/"
               onClick={closeMenus}
-              className="flex items-center gap-2.5 cursor-pointer"
+              className="flex items-center gap-3 shrink-0"
             >
-              <img
-                src="/uploads/donald.jpg"
-                alt="Logo de Lo Del Donald"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain bg-white"
-              />
+              <div className="w-10 h-10 rounded-xl bg-gray-950 p-1.5 shadow-sm">
+                <img
+                  src="/uploads/donald.jpg"
+                  alt="Logo de Lo Del Donald"
+                  className="w-full h-full rounded-lg object-contain"
+                />
+              </div>
 
-              <span className="text-lg sm:text-xl font-bold whitespace-nowrap">
-                Lo Del Donald
-              </span>
+              <div className="hidden sm:block leading-tight">
+                <div className="text-base font-black tracking-tight text-gray-950">
+                  Lo Del <span className="text-green-600">Donald</span>
+                </div>
+              </div>
             </Link>
 
             {cashOpen !== null && (
-              <span
-                className={`hidden sm:inline-flex text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap ${
-                  cashOpen
-                    ? "bg-green-600 text-white"
-                    : "bg-red-600 text-white"
-                }`}
-              >
-                {cashOpen
-                  ? "Caja abierta"
-                  : "Caja cerrada"}
-              </span>
+              <div className="hidden lg:flex items-center ml-5 pl-5 border-l border-gray-200">
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    cashOpen
+                      ? "bg-green-50 text-green-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <Circle size={8} fill="currentColor" strokeWidth={0} />
+                  {cashOpen ? "Caja abierta" : "Caja cerrada"}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* ================================================= */}
-          {/* DESKTOP */}
-          {/* ================================================= */}
-
-          <div className="hidden md:flex items-center gap-5">
-
-            {/* ================================================= */}
-            {/* VENTAS - TODOS */}
-            {/* ================================================= */}
-
+          <div className="hidden md:flex items-center gap-1">
             <Link
               href="/pos"
               onClick={closeMenus}
-              className="hover:text-gray-300 transition cursor-pointer"
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${navLink(
+                "/pos",
+              )}`}
             >
+              <ShoppingCart size={17} />
               Ventas
             </Link>
 
-            {/* ================================================= */}
-            {/* CAJA - TODOS */}
-            {/* ================================================= */}
+            <Link
+              href="/orders"
+              onClick={closeMenus}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${navLink(
+                "/orders",
+              )}`}
+            >
+              <ClipboardList size={17} />
+              Órdenes
+            </Link>
 
             <div className="relative">
               <button
                 onClick={() => toggle("cash")}
-                className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                  openMenu === "cash"
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
               >
+                <Wallet size={17} />
                 Caja
-
-                <ChevronDown
-                  size={16}
-                  className={iconClass("cash")}
-                />
+                <ChevronDown size={15} className={iconClass("cash")} />
               </button>
 
               <div className={menuClass("cash")}>
-
                 <Link
                   href="/cash"
                   onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-t-xl transition cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
-                  Abrir caja
+                  <Wallet size={17} />
+                  <div>
+                    <div className="font-semibold text-sm">Abrir caja</div>
+                    <div className="text-xs text-gray-400">Iniciar jornada</div>
+                  </div>
                 </Link>
 
                 <Link
                   href="/cash/close"
                   onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-b-xl transition cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
-                  Cerrar caja
+                  <Wallet size={17} />
+                  <div>
+                    <div className="font-semibold text-sm">Cerrar caja</div>
+                    <div className="text-xs text-gray-400">
+                      Finalizar jornada
+                    </div>
+                  </div>
                 </Link>
-
               </div>
             </div>
-
-            {/* ================================================= */}
-            {/* HISTORIAL - TODOS */}
-            {/* ================================================= */}
 
             <div className="relative">
               <button
                 onClick={() => toggle("history")}
-                className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                  openMenu === "history"
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                }`}
               >
+                <History size={17} />
                 Historial
-
-                <ChevronDown
-                  size={16}
-                  className={iconClass("history")}
-                />
+                <ChevronDown size={15} className={iconClass("history")} />
               </button>
 
               <div className={menuClass("history")}>
-
                 <Link
                   href="/history"
                   onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-t-xl transition cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
-                  Historial de venta
+                  <History size={17} />
+                  <div>
+                    <div className="font-semibold text-sm">
+                      Historial de ventas
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Consultar operaciones
+                    </div>
+                  </div>
                 </Link>
 
                 <Link
                   href="/cash/history"
                   onClick={closeMenus}
-                  className="block px-4 py-3 hover:bg-gray-100 rounded-b-xl transition cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                 >
-                  Historial de caja
+                  <Wallet size={17} />
+                  <div>
+                    <div className="font-semibold text-sm">
+                      Historial de caja
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Movimientos de caja
+                    </div>
+                  </div>
                 </Link>
-
               </div>
             </div>
 
-            {/* ================================================= */}
-            {/* PRODUCTOS - SOLO ADMIN */}
-            {/* ================================================= */}
-
             {isAdmin && (
               <div className="relative">
-
                 <button
                   onClick={() => toggle("products")}
-                  className="flex items-center gap-1.5 px-2 py-2 hover:text-gray-300 transition cursor-pointer"
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    openMenu === "products"
+                      ? "bg-gray-100 text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
                 >
-                  Productos
-
-                  <ChevronDown
-                    size={16}
-                    className={iconClass("products")}
-                  />
+                  <Package size={17} />
+                  Administración
+                  <ChevronDown size={15} className={iconClass("products")} />
                 </button>
 
                 <div className={menuClass("products")}>
-
                   <Link
                     href="/products"
                     onClick={closeMenus}
-                    className="block px-4 py-3 hover:bg-gray-100 rounded-t-xl transition cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
-                    Productos
+                    <Package size={17} />
+                    <div>
+                      <div className="font-semibold text-sm">Productos</div>
+                      <div className="text-xs text-gray-400">
+                        Stock y precios
+                      </div>
+                    </div>
                   </Link>
 
                   <Link
                     href="/recipes"
                     onClick={closeMenus}
-                    className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
-                    Recetas
+                    <Package size={17} />
+                    <div>
+                      <div className="font-semibold text-sm">Recetas</div>
+                      <div className="text-xs text-gray-400">Preparaciones</div>
+                    </div>
                   </Link>
 
                   <Link
                     href="/categories"
                     onClick={closeMenus}
-                    className="block px-4 py-3 hover:bg-gray-100 transition cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
-                    Categorías
+                    <Package size={17} />
+                    <div>
+                      <div className="font-semibold text-sm">Categorías</div>
+                      <div className="text-xs text-gray-400">Organización</div>
+                    </div>
                   </Link>
 
                   <Link
                     href="/suppliers"
                     onClick={closeMenus}
-                    className="block px-4 py-3 hover:bg-gray-100 rounded-b-xl transition cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-3.5 hover:bg-green-50 hover:text-green-700 transition"
                   >
-                    Proveedores
+                    <Package size={17} />
+                    <div>
+                      <div className="font-semibold text-sm">Proveedores</div>
+                      <div className="text-xs text-gray-400">
+                        Contactos y compras
+                      </div>
+                    </div>
                   </Link>
-
                 </div>
               </div>
             )}
+          </div>
 
-            {/* ================================================= */}
-            {/* USUARIO */}
-            {/* ================================================= */}
-
+          <div className="hidden md:flex items-center gap-3">
             {user && (
-              <div className="flex items-center gap-2 border-l border-gray-700 pl-4">
+              <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200">
+                <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+                  <User size={17} />
+                </div>
 
-                <User size={17} />
-
-                <div className="flex flex-col leading-tight">
-
-                  <span className="text-sm font-semibold">
+                <div className="leading-tight">
+                  <div className="text-sm font-bold text-gray-900">
                     {user.username}
-                  </span>
+                  </div>
 
-                  <span className="text-xs text-gray-400">
-                    {user.role === "ADMIN"
-                      ? "Administrador"
-                      : "Empleado"}
-                  </span>
-
+                  <div className="text-[11px] font-medium text-gray-400">
+                    {user.role === "ADMIN" ? "Administrador" : "Empleado"}
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* ================================================= */}
-            {/* LOGOUT */}
-            {/* ================================================= */}
 
             <button
               onClick={logout}
-              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg font-medium transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
             >
-              <LogOut size={16} />
-              Cerrar sesión
+              <LogOut size={17} />
+              <span className="hidden lg:inline">Salir</span>
             </button>
-
           </div>
 
-          {/* ================================================= */}
-          {/* MOBILE BUTTON */}
-          {/* ================================================= */}
-
           <button
-            onClick={() =>
-              setMobileMenuOpen(!mobileMenuOpen)
-            }
-            className="md:hidden p-2 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
             aria-label="Abrir menú"
           >
-            {mobileMenuOpen ? (
-              <X size={26} />
-            ) : (
-              <Menu size={26} />
-            )}
+            {mobileMenuOpen ? <X size={23} /> : <Menu size={23} />}
           </button>
-
         </div>
 
-        {/* ================================================= */}
-        {/* MOBILE MENU */}
-        {/* ================================================= */}
-
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-2 border-t border-gray-800 pt-4 space-y-2">
-
-            {/* ================================================= */}
-            {/* USUARIO */}
-            {/* ================================================= */}
-
+          <div className="md:hidden border-t border-gray-100 py-4 space-y-2">
             {user && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-gray-900 rounded-lg">
+              <div className="flex items-center gap-3 p-3 mb-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+                  <User size={18} />
+                </div>
 
-                <User size={20} />
+                <div className="leading-tight">
+                  <div className="font-bold text-gray-900">{user.username}</div>
 
-                <div className="flex flex-col">
-
-                  <span className="font-semibold">
-                    {user.username}
-                  </span>
-
-                  <span className="text-sm text-gray-400">
-                    {user.role === "ADMIN"
-                      ? "Administrador"
-                      : "Empleado"}
-                  </span>
-
+                  <div className="text-xs text-gray-400">
+                    {user.role === "ADMIN" ? "Administrador" : "Empleado"}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* ================================================= */}
-            {/* ESTADO CAJA */}
-            {/* ================================================= */}
-
             {cashOpen !== null && (
               <div
-                className={`px-3 py-2 rounded-lg text-sm font-semibold ${
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold ${
                   cashOpen
-                    ? "bg-green-600"
-                    : "bg-red-600"
+                    ? "bg-green-50 text-green-700"
+                    : "bg-amber-50 text-amber-700"
                 }`}
               >
-                {cashOpen
-                  ? "● Caja abierta"
-                  : "● Caja cerrada"}
+                <Circle size={8} fill="currentColor" strokeWidth={0} />
+                {cashOpen ? "Caja abierta" : "Caja cerrada"}
               </div>
             )}
-
-            {/* ================================================= */}
-            {/* VENTAS - TODOS */}
-            {/* ================================================= */}
 
             <Link
               href="/pos"
               onClick={closeMenus}
-              className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${navLink(
+                "/pos",
+              )}`}
             >
+              <ShoppingCart size={18} />
               Ventas
             </Link>
 
-            {/* ================================================= */}
-            {/* CAJA - TODOS */}
-            {/* ================================================= */}
+            <Link
+              href="/orders"
+              onClick={closeMenus}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${navLink(
+                "/orders",
+              )}`}
+            >
+              <ClipboardList size={18} />
+              Órdenes
+            </Link>
 
             <div>
-
               <button
                 onClick={() => toggle("mobile-cash")}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
               >
-                <span>Caja</span>
+                <span className="flex items-center gap-3">
+                  <Wallet size={18} />
+                  Caja
+                </span>
 
-                <ChevronDown
-                  size={18}
-                  className={iconClass("mobile-cash")}
-                />
+                <ChevronDown size={18} className={iconClass("mobile-cash")} />
               </button>
 
               {openMenu === "mobile-cash" && (
-                <div className="mt-1 ml-3 space-y-1">
-
+                <div className="ml-4 mt-1 space-y-1">
                   <Link
                     href="/cash"
                     onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                   >
                     Abrir caja
                   </Link>
@@ -511,27 +483,23 @@ export default function Navbar() {
                   <Link
                     href="/cash/close"
                     onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                   >
                     Cerrar caja
                   </Link>
-
                 </div>
               )}
-
             </div>
 
-            {/* ================================================= */}
-            {/* HISTORIAL - TODOS */}
-            {/* ================================================= */}
-
             <div>
-
               <button
                 onClick={() => toggle("mobile-history")}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
               >
-                <span>Historial</span>
+                <span className="flex items-center gap-3">
+                  <History size={18} />
+                  Historial
+                </span>
 
                 <ChevronDown
                   size={18}
@@ -540,59 +508,49 @@ export default function Navbar() {
               </button>
 
               {openMenu === "mobile-history" && (
-                <div className="mt-1 ml-3 space-y-1">
-
+                <div className="ml-4 mt-1 space-y-1">
                   <Link
                     href="/history"
                     onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                   >
-                    Historial de venta
+                    Historial de ventas
                   </Link>
 
                   <Link
                     href="/cash/history"
                     onClick={closeMenus}
-                    className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                    className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                   >
                     Historial de caja
                   </Link>
-
                 </div>
               )}
-
             </div>
-
-            {/* ================================================= */}
-            {/* PRODUCTOS - SOLO ADMIN */}
-            {/* ================================================= */}
 
             {isAdmin && (
               <div>
-
                 <button
-                  onClick={() =>
-                    toggle("mobile-products")
-                  }
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                  onClick={() => toggle("mobile-products")}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
                 >
-                  <span>Productos</span>
+                  <span className="flex items-center gap-3">
+                    <Package size={18} />
+                    Administración
+                  </span>
 
                   <ChevronDown
                     size={18}
-                    className={iconClass(
-                      "mobile-products"
-                    )}
+                    className={iconClass("mobile-products")}
                   />
                 </button>
 
                 {openMenu === "mobile-products" && (
-                  <div className="mt-1 ml-3 space-y-1">
-
+                  <div className="ml-4 mt-1 space-y-1">
                     <Link
                       href="/products"
                       onClick={closeMenus}
-                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                      className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                     >
                       Productos
                     </Link>
@@ -600,7 +558,7 @@ export default function Navbar() {
                     <Link
                       href="/recipes"
                       onClick={closeMenus}
-                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                      className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                     >
                       Recetas
                     </Link>
@@ -608,7 +566,7 @@ export default function Navbar() {
                     <Link
                       href="/categories"
                       onClick={closeMenus}
-                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                      className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                     >
                       Categorías
                     </Link>
@@ -616,32 +574,24 @@ export default function Navbar() {
                     <Link
                       href="/suppliers"
                       onClick={closeMenus}
-                      className="block px-4 py-2.5 rounded-lg hover:bg-gray-800 transition cursor-pointer"
+                      className="block px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-700"
                     >
                       Proveedores
                     </Link>
-
                   </div>
                 )}
-
               </div>
             )}
 
-            {/* ================================================= */}
-            {/* LOGOUT */}
-            {/* ================================================= */}
-
             <button
               onClick={logout}
-              className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg font-semibold transition mt-3 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition mt-3"
             >
               <LogOut size={18} />
               Cerrar sesión
             </button>
-
           </div>
         )}
-
       </nav>
     </header>
   );

@@ -1,8 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import {
+  ArrowLeft,
+  ChefHat,
+  ImageIcon,
+  Plus,
+  Save,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 type Product = {
   id: number;
@@ -30,7 +39,6 @@ export default function NewRecipePage() {
 
   const [items, setItems] = useState<RecipeItem[]>([]);
 
-  // IMAGEN
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -49,9 +57,10 @@ export default function NewRecipePage() {
     }
   }
 
-  // OBTENER PLACEHOLDER SEGÚN LA UNIDAD DEL PRODUCTO
   function getQuantityPlaceholder() {
-    const product = products.find((p) => p.id === Number(selectedProduct));
+    const product = products.find(
+      (p) => p.id === Number(selectedProduct),
+    );
 
     if (!product) return "Cantidad";
 
@@ -65,13 +74,35 @@ export default function NewRecipePage() {
       case "kilo":
         return "Cantidad (kg)";
 
+      case "unit":
+        return "Cantidad (un)";
+
+      case "g":
+        return "Cantidad (gr)";
+
+      case "kg":
+        return "Cantidad (kg)";
+
       default:
-        return "Cantidad";
+        return `Cantidad (${product.unitType})`;
     }
   }
 
-  // SUBIR IMAGEN
   async function uploadImage(file: File) {
+    if (!file) return;
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      alert("La imagen original no puede superar los 5 MB.");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      alert("El archivo seleccionado debe ser una imagen.");
+      return;
+    }
+
     const form = new FormData();
 
     form.append("file", file);
@@ -86,14 +117,20 @@ export default function NewRecipePage() {
 
       const data = await res.json();
 
-      if (data.url) {
-        setImageUrl(data.url);
-      } else {
-        alert("Error al subir la imagen");
+      if (!res.ok) {
+        alert(data.error || "Error al subir la imagen.");
+        return;
       }
+
+      if (!data.url) {
+        alert("El servidor no devolvió la URL de la imagen.");
+        return;
+      }
+
+      setImageUrl(data.url);
     } catch (error) {
       console.error(error);
-      alert("Error al subir la imagen");
+      alert("Error al subir la imagen.");
     } finally {
       setUploading(false);
     }
@@ -102,12 +139,15 @@ export default function NewRecipePage() {
   function addIngredient() {
     if (!selectedProduct || !quantity) return;
 
-    const product = products.find((p) => p.id === Number(selectedProduct));
+    const product = products.find(
+      (p) => p.id === Number(selectedProduct),
+    );
 
     if (!product) return;
 
-    // evitar duplicados
-    const alreadyExists = items.find((i) => i.productId === product.id);
+    const alreadyExists = items.find(
+      (i) => i.productId === product.id,
+    );
 
     if (alreadyExists) {
       alert("Ese ingrediente ya fue agregado");
@@ -129,32 +169,44 @@ export default function NewRecipePage() {
   }
 
   function removeIngredient(productId: number) {
-    setItems((prev) => prev.filter((item) => item.productId !== productId));
+    setItems((prev) =>
+      prev.filter((item) => item.productId !== productId),
+    );
   }
 
   async function handleSubmit(e: any) {
     e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Ingresá un nombre para la receta.");
+      return;
+    }
+
+    if (!price || Number(price) <= 0) {
+      alert("Ingresá un precio de venta válido.");
+      return;
+    }
 
     if (items.length === 0) {
       alert("Agregá al menos un ingrediente");
       return;
     }
 
+    if (uploading) {
+      alert("Espera a que termine de procesarse la imagen.");
+      return;
+    }
+
     try {
       const res = await fetch("/api/recipes", {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: JSON.stringify({
           name,
           price: Number(price),
-
-          // IMAGEN
           imageUrl,
-
           items: items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -162,8 +214,10 @@ export default function NewRecipePage() {
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        alert("Error creando receta");
+        alert(data.error || "Error creando receta");
         return;
       }
 
@@ -177,228 +231,375 @@ export default function NewRecipePage() {
   }
 
   return (
-    <div className="w-full min-h-full px-4 py-6 sm:px-6 sm:py-8 md:py-10 flex justify-center">
-      <div className="w-full max-w-4xl space-y-5 sm:space-y-6">
-        {/* HEADER */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-800">
-            Nueva receta
-          </h1>
-
-          <p className="text-sm sm:text-base text-gray-500 mt-1">
-            Creá una receta usando productos existentes
-          </p>
-        </div>
-
-        {/* FORM */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-sm"
-        >
-          {/* DATOS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* NOMBRE */}
-            <div className="space-y-2">
-              <label className="block font-medium">Nombre</label>
-
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="Ej: Hamburguesa clásica"
-              />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-[#f6f8f7]">
+      {/* HEADER */}
+      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+              <ChefHat size={21} />
             </div>
 
-            {/* PRECIO */}
-            <div className="space-y-2">
-              <label className="block font-medium">Precio de venta</label>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black tracking-tight text-slate-900">
+                Nueva receta
+              </h1>
 
-              <input
-                required
-                type="number"
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="border border-slate-300 p-3 rounded-xl w-full outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          {/* INGREDIENTES */}
-          <div className="border border-gray-200 rounded-2xl p-4 sm:p-5 space-y-4 bg-gray-50">
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-800">
-                Ingredientes
-              </h2>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Seleccioná productos y cantidades
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
+                Creá una receta usando productos existentes
               </p>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-3">
-              <select
-                value={selectedProduct}
-                onChange={(e) => {
-                  setSelectedProduct(e.target.value);
-                  setQuantity("");
-                }}
-                className="border border-slate-300 p-3 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-              >
-                <option value="">Seleccionar producto</option>
+          <button
+            type="button"
+            onClick={() => router.push("/recipes")}
+            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50 hover:text-green-700 sm:w-auto"
+          >
+            <ArrowLeft size={17} />
+            Volver a recetas
+          </button>
+        </div>
+      </header>
 
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                  </option>
-                ))}
-              </select>
-
-              {(() => {
-                const product = products.find(
-                  (p) => p.id === Number(selectedProduct),
-                );
-
-                return (
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="border border-slate-300 p-3 rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
-                    placeholder={
-                      product ? `Cantidad (${product.unitType})` : "Cantidad"
-                    }
-                  />
-                );
-              })()}
-
-              <button
-                type="button"
-                onClick={addIngredient}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-3 font-semibold transition cursor-pointer"
-              >
-                Agregar ingrediente
-              </button>
-            </div>
-
-            {/* LISTA */}
-            <div className="space-y-2">
-              {items.length === 0 && (
-                <div className="bg-white border border-dashed border-gray-300 rounded-xl p-5 text-center text-sm text-gray-500">
-                  No hay ingredientes agregados.
-                </div>
-              )}
-
-              {items.map((item) => (
-                <div
-                  key={item.productId}
-                  className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium text-slate-800 break-words">
-                      {item.name}
-                    </div>
-
-                    <div className="text-sm text-gray-500 mt-1">
-                      Cantidad:{" "}
-                      <span className="font-medium">
-                        {item.quantity} {item.unitType}
-                      </span>
-                    </div>
+      {/* CONTENIDO */}
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="mx-auto max-w-4xl">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            {/* INFORMACIÓN BÁSICA */}
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
+                    <ChefHat size={19} />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(item.productId)}
-                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-4 py-3 sm:py-2 rounded-xl font-medium transition cursor-pointer"
-                  >
-                    Eliminar
-                  </button>
+                  <div>
+                    <h2 className="font-black text-slate-900">
+                      Información básica
+                    </h2>
+
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                      Nombre y precio de venta
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* IMAGEN */}
-          <div>
-            <label className="block font-medium mb-2">
-              Imagen de la receta
-            </label>
+              <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 sm:p-6">
+                <div>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Nombre
+                  </label>
 
-            {/* VISTA PREVIA */}
-            <div className="mt-4 w-full max-w-xs aspect-square border border-gray-200 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden">
-              {imageUrl ? (
-                <Image
-                  width={320}
-                  height={320}
-                  src={imageUrl}
-                  alt="Imagen de la receta"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>Sin imagen</span>
-              )}
-            </div>
+                  <input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ej: Hamburguesa clásica"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                  />
+                </div>
 
-            <p className="text-sm text-gray-500 mt-3">
-              Tamaño máximo del archivo: 5MB.
-            </p>
+                <div>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Precio de venta
+                  </label>
 
-            <label
-              className={`inline-flex items-center justify-center px-5 py-3 mt-4 rounded-xl text-white font-medium transition w-full sm:w-auto ${
-                uploading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
-              }`}
-            >
-              {uploading ? "Procesando..." : "Elegir imagen"}
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-green-600">
+                      $
+                    </span>
 
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full rounded-xl border border-green-200 bg-green-50/30 py-3 pl-8 pr-4 text-sm font-black text-green-700 outline-none transition placeholder:text-green-300 focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* INGREDIENTES */}
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                    <Plus size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="font-black text-slate-900">
+                      Ingredientes
+                    </h2>
+
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                      Seleccioná productos y cantidades
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5 p-5 sm:p-6">
+                {/* AGREGAR INGREDIENTE */}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px_auto]">
+                    <select
+                      value={selectedProduct}
+                      onChange={(e) => {
+                        setSelectedProduct(e.target.value);
+                        setQuantity("");
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                    >
+                      <option value="">
+                        Seleccionar producto
+                      </option>
+
+                      {products.map((product) => (
+                        <option
+                          key={product.id}
+                          value={product.id}
+                        >
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={quantity}
+                      onChange={(e) =>
+                        setQuantity(e.target.value)
+                      }
+                      placeholder={getQuantityPlaceholder()}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={addIngredient}
+                      className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-700"
+                    >
+                      <Plus size={17} />
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+
+                {/* LISTA */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                      Ingredientes agregados
+                    </p>
+
+                    <span className="text-xs font-semibold text-slate-400">
+                      {items.length}{" "}
+                      {items.length === 1
+                        ? "ingrediente"
+                        : "ingredientes"}
+                    </span>
+                  </div>
+
+                  {items.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-300">
+                        <Plus size={20} />
+                      </div>
+
+                      <p className="mt-3 text-sm font-semibold text-slate-500">
+                        No hay ingredientes agregados
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Seleccioná un producto y agregalo a la
+                        receta.
+                      </p>
+                    </div>
+                  )}
+
+                  {items.map((item) => (
+                    <div
+                      key={item.productId}
+                      className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
+                          <ChefHat size={17} />
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="break-words text-sm font-bold text-slate-800">
+                            {item.name}
+                          </p>
+
+                          <p className="mt-1 text-xs font-medium text-slate-400">
+                            Cantidad:{" "}
+                            <span className="font-bold text-slate-600">
+                              {item.quantity} {item.unitType}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeIngredient(item.productId)
+                        }
+                        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:border-red-200 hover:bg-red-100 sm:w-auto"
+                      >
+                        <Trash2 size={16} />
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* IMAGEN */}
+            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                    <ImageIcon size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="font-black text-slate-900">
+                      Imagen de la receta
+                    </h2>
+
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                      Agregá una imagen para identificar la receta
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                  <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                    {imageUrl ? (
+                      <Image
+                        width={320}
+                        height={320}
+                        src={imageUrl}
+                        alt="Imagen de la receta"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center text-slate-300">
+                        <ImageIcon size={32} />
+
+                        <span className="mt-2 text-sm font-semibold">
+                          Sin imagen
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col justify-center">
+                    <p className="text-sm font-bold text-slate-700">
+                      Imagen de la receta
+                    </p>
+
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                      Tamaño máximo del archivo: 5 MB.
+                    </p>
+
+                    <label
+                      className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition sm:w-fit ${
+                        uploading
+                          ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                          : "cursor-pointer border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-green-200 hover:bg-green-50 hover:text-green-700"
+                      }`}
+                    >
+                      <Upload size={17} />
+
+                      {uploading
+                        ? "Procesando..."
+                        : "Elegir imagen"}
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+
+                          if (file) {
+                            uploadImage(file);
+                          }
+
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {uploading && (
+                      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-blue-600">
+                        <Upload
+                          size={15}
+                          className="animate-pulse"
+                        />
+
+                        Procesando imagen...
+                      </div>
+                    )}
+
+                    {imageUrl && !uploading && (
+                      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-green-600">
+                        <ImageIcon size={15} />
+
+                        Imagen optimizada correctamente.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* BOTONES */}
+            <div className="flex flex-col-reverse gap-3 pb-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => router.push("/recipes")}
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+              >
+                <ArrowLeft size={17} />
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
                 disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
+                className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 text-sm font-black text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+              >
+                <Save size={17} />
 
-                  if (file) {
-                    uploadImage(file);
-                  }
-
-                  // Permite volver a seleccionar el mismo archivo
-                  e.target.value = "";
-                }}
-              />
-            </label>
-
-            {uploading && (
-              <p className="text-sm text-gray-500 mt-2">Procesando imagen...</p>
-            )}
-          </div>
-
-          {/* BOTONES */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => router.push("/recipes")}
-              className="w-full sm:w-auto border border-gray-300 hover:bg-gray-100 px-5 py-3 rounded-xl font-medium transition cursor-pointer"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="submit"
-              disabled={uploading}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-semibold transition cursor-pointer"
-            >
-              {uploading ? "Procesando imagen..." : "Crear receta"}
-            </button>
-          </div>
-        </form>
-      </div>
+                {uploading
+                  ? "Procesando imagen..."
+                  : "Crear receta"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }

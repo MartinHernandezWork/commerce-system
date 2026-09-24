@@ -2,8 +2,8 @@ import "./globals.css";
 import Navbar from "./navbar";
 
 export const metadata = {
-  title: "Sistema Ventas",
-  description: "Manage products, stock and sales",
+  title: "Lo Del Donald",
+  description: "Sistema de gestión de Lo Del Donald",
 };
 
 export default function RootLayout({
@@ -13,12 +13,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="h-full">
-      <body className="bg-gray-100 h-full flex flex-col">
-        <Navbar />
+      <body className="min-h-full bg-gray-50 text-gray-900 antialiased">
+        <div className="min-h-screen flex flex-col">
+          <Navbar />
 
-        <main className="flex-1 min-h-0 max-w-6xl mx-auto w-full p-4 sm:p-6">
-          {children}
-        </main>
+          <main className="flex-1 min-h-0 w-full">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
