@@ -157,10 +157,7 @@ export default function ProductsPage() {
             <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-600">
-                  <Package
-                    size={23}
-                    className="animate-pulse"
-                  />
+                  <Package size={23} className="animate-pulse" />
                 </div>
 
                 <p className="font-semibold text-slate-700">
@@ -207,9 +204,7 @@ export default function ProductsPage() {
 
                   <p className="text-sm font-medium text-green-800">
                     Buscando{" "}
-                    <span className="font-black">
-                      "{search}"
-                    </span>
+                    <span className="font-black">"{search}"</span>
                   </p>
 
                   <button
@@ -327,8 +322,7 @@ export default function ProductsPage() {
                     </h2>
 
                     <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                      Probá con otro nombre, categoría o
-                      proveedor.
+                      Probá con otro nombre, categoría o proveedor.
                     </p>
 
                     <button
@@ -343,6 +337,7 @@ export default function ProductsPage() {
                 </div>
               ) : (
                 <>
+                  {/* TABLA DESKTOP */}
                   <div className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:block">
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse">
@@ -366,6 +361,10 @@ export default function ProductsPage() {
 
                             <th className="px-5 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
                               Venta
+                            </th>
+
+                            <th className="px-5 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
+                              Venta en POS
                             </th>
 
                             <th className="px-5 py-4 text-xs font-black uppercase tracking-wider text-slate-500">
@@ -431,6 +430,19 @@ export default function ProductsPage() {
                                 </span>
                               </td>
 
+                              {/* ESTADO DE VENTA */}
+                              <td className="px-5 py-4">
+                                {p.showInPOS ? (
+                                  <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-xs font-black text-green-700">
+                                    Disponible
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-black text-red-600">
+                                    No disponible
+                                  </span>
+                                )}
+                              </td>
+
                               <td className="px-5 py-4">
                                 <span className="text-sm font-medium text-slate-600">
                                   {p.category?.name ?? "-"}
@@ -472,6 +484,7 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
+                  {/* TARJETAS MOBILE */}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:hidden">
                     {filteredProducts.map((p) => (
                       <article
@@ -518,9 +531,21 @@ export default function ProductsPage() {
                             </div>
 
                             <p className="mt-2 truncate text-xs font-medium text-slate-500">
-                              {p.category?.name ??
-                                "Sin categoría"}
+                              {p.category?.name ?? "Sin categoría"}
                             </p>
+
+                            {/* ESTADO DE VENTA MOBILE */}
+                            <div className="mt-2">
+                              {p.showInPOS ? (
+                                <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-black text-green-700">
+                                  Disponible para la venta
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-black text-red-600">
+                                  No disponible para la venta
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 

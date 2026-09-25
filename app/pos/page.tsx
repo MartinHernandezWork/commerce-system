@@ -120,7 +120,7 @@ export default function POSPage() {
 
       const [productsRes, recipesRes, categoriesRes, cashRes] =
         await Promise.all([
-          fetch("/api/products?showInPOS=true"),
+          fetch("/api/products?pos=true"),
           fetch("/api/recipes?showInPOS=true"),
           fetch("/api/categories"),
           fetch("/api/cash/status"),
