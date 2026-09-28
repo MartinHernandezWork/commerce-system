@@ -807,8 +807,7 @@ export default function POSPage() {
       setCashReceived("");
 
       await loadData();
-
-      alert("Venta registrada correctamente.");
+      
     } catch (error: any) {
       console.error("FINALIZE SALE ERROR:", error);
 

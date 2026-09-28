@@ -2,13 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST() {
-
   const cash = await prisma.cashRegister.findFirst({
     where: {
       closedAt: null,
     },
     include: {
-      saleGroups: true,
+      saleGroups: {
+        where: {
+          cancelledAt: null,
+        },
+      },
     },
     orderBy: {
       openedAt: "desc",

@@ -40,9 +40,22 @@ type SaleGroup = {
   transferAmount?: number;
   cashReceived?: number;
   change?: number;
-  cancelled?: boolean;
+
+  cancelledAt?: string | null;
+
+  cancelledBy?: {
+    id: number;
+    username: string;
+  } | null;
+
   sales?: Sale[];
   recipeSales?: RecipeSale[];
+};
+
+type CurrentUser = {
+  id: number;
+  username: string;
+  role: "ADMIN" | "EMPLOYEE";
 };
 
 function formatMoney(value: number) {
@@ -135,13 +148,23 @@ function PaymentIcon({
 
 export default function HistoryPage() {
   const [groups, setGroups] = useState<SaleGroup[]>([]);
+
+  const [currentUser, setCurrentUser] =
+    useState<CurrentUser | null>(null);
+
   const [selectedDate, setSelectedDate] = useState(
     new Date().toLocaleDateString("en-CA"),
   );
+
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [cancellingId, setCancellingId] =
+    useState<number | null>(null);
+
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   async function load(manual = false) {
     try {
@@ -181,8 +204,79 @@ export default function HistoryPage() {
     }
   }
 
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch("/api/auth/me", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+
+      setCurrentUser(data);
+    } catch (error) {
+      console.error(
+        "Error obteniendo usuario actual:",
+        error,
+      );
+    }
+  }
+
+  async function cancelSale(groupId: number) {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que querés anular la venta #${groupId}?\n\n` +
+        "Se devolverá el stock utilizado por esta venta y la venta quedará marcada como anulada.\n\n" +
+        "Esta acción no se puede deshacer desde el sistema.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCancellingId(groupId);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const response = await fetch(
+        `/api/sale-group/${groupId}/cancel`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "No se pudo anular la venta.",
+        );
+      }
+
+      setSuccessMessage(
+        `La venta #${groupId} fue anulada correctamente.`,
+      );
+
+      await load();
+    } catch (error: any) {
+      console.error(error);
+
+      setErrorMessage(
+        error?.message ||
+          "No se pudo anular la venta.",
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadCurrentUser();
   }, []);
 
   const filteredGroups = useMemo(() => {
@@ -235,7 +329,7 @@ export default function HistoryPage() {
 
   const activeGroups = useMemo(() => {
     return filteredGroups.filter(
-      (group) => !group.cancelled,
+      (group) => !group.cancelledAt,
     );
   }, [filteredGroups]);
 
@@ -270,7 +364,7 @@ export default function HistoryPage() {
       : 0;
 
   const cancelledGroups = filteredGroups.filter(
-    (group) => group.cancelled,
+    (group) => Boolean(group.cancelledAt),
   ).length;
 
   if (loading) {
@@ -299,66 +393,72 @@ export default function HistoryPage() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-[#f6f8f7]">
       <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-center">
-    <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-        <ReceiptText size={21} />
-      </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-green-100 text-green-700">
+              <ReceiptText size={21} />
+            </div>
 
-      <div>
-        <h1 className="text-2xl font-black tracking-tight text-slate-900">
-          Historial de ventas
-        </h1>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                Historial de ventas
+              </h1>
 
-        <p className="mt-0.5 text-xs font-medium text-slate-400">
-          Consultá las ventas y sus detalles
-        </p>
-      </div>
-    </div>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
+                Consultá las ventas y sus detalles
+              </p>
+            </div>
+          </div>
 
-    <div className="relative w-full lg:mx-auto lg:w-full lg:max-w-md">
-      <Search
-        size={17}
-        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-      />
+          <div className="relative w-full lg:mx-auto lg:w-full lg:max-w-md">
+            <Search
+              size={17}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            />
 
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar ticket, cliente o producto..."
-        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
-      />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Buscar ticket, cliente o producto..."
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
+            />
 
-      {search && (
-        <button
-          type="button"
-          onClick={() => setSearch("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-slate-400 transition hover:text-slate-600"
-          aria-label="Limpiar búsqueda"
-        >
-          <X size={16} />
-        </button>
-      )}
-    </div>
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-slate-400 transition hover:text-slate-600"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-    <div className="flex justify-start lg:justify-end">
-      <button
-        type="button"
-        onClick={() => load(true)}
-        disabled={refreshing}
-        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <RefreshCw
-          size={17}
-          className={refreshing ? "animate-spin" : ""}
-        />
+          <div className="flex justify-start lg:justify-end">
+            <button
+              type="button"
+              onClick={() => load(true)}
+              disabled={refreshing}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                size={17}
+                className={
+                  refreshing ? "animate-spin" : ""
+                }
+              />
 
-        {refreshing ? "Actualizando..." : "Actualizar"}
-      </button>
-    </div>
-  </div>
-</header>
+              {refreshing
+                ? "Actualizando..."
+                : "Actualizar"}
+            </button>
+          </div>
+        </div>
+      </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-7xl space-y-6">
@@ -371,7 +471,7 @@ export default function HistoryPage() {
 
                 <div>
                   <p className="font-bold text-slate-800">
-                    No se pudo cargar el historial
+                    No se pudo completar la operación
                   </p>
 
                   <p className="mt-1 text-sm leading-relaxed text-slate-500">
@@ -381,6 +481,28 @@ export default function HistoryPage() {
               </div>
 
               <div className="h-1 bg-red-500" />
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="overflow-hidden rounded-2xl border border-green-200 bg-white">
+              <div className="flex items-start gap-3 p-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-600">
+                  <CheckCircle2 size={18} />
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-800">
+                    Venta anulada
+                  </p>
+
+                  <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                    {successMessage}
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-1 bg-green-500" />
             </div>
           )}
 
@@ -570,7 +692,7 @@ export default function HistoryPage() {
 
               {filteredGroups.map((group) => {
                 const cancelled = Boolean(
-                  group.cancelled,
+                  group.cancelledAt,
                 );
 
                 const productCount =
@@ -588,15 +710,33 @@ export default function HistoryPage() {
                   >
                     {cancelled && (
                       <div className="border-b border-red-200 bg-red-50 px-5 py-3 sm:px-6">
-                        <div className="flex items-center gap-2">
-                          <XCircle
-                            size={17}
-                            className="text-red-600"
-                          />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2">
+                            <XCircle
+                              size={17}
+                              className="text-red-600"
+                            />
 
-                          <span className="text-xs font-black uppercase tracking-wider text-red-700">
-                            Venta anulada
-                          </span>
+                            <span className="text-xs font-black uppercase tracking-wider text-red-700">
+                              Venta anulada
+                            </span>
+                          </div>
+
+                          {group.cancelledBy && (
+                            <span className="text-xs font-semibold text-red-600">
+                              Anulada por{" "}
+                              <span className="font-black">
+                                {group.cancelledBy.username}
+                              </span>
+
+                              {group.cancelledAt &&
+                                ` · ${formatDate(
+                                  group.cancelledAt,
+                                )} ${formatTime(
+                                  group.cancelledAt,
+                                )}`}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -825,19 +965,53 @@ export default function HistoryPage() {
                     </div>
 
                     <footer className="border-t border-slate-200 bg-slate-50/70 px-5 py-3.5 sm:px-6">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400">
-                          <ReceiptText size={14} />
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400">
+                            <ReceiptText size={14} />
 
-                          {productCount}{" "}
-                          {productCount === 1
-                            ? "producto"
-                            : "productos"}
-                        </span>
+                            {productCount}{" "}
+                            {productCount === 1
+                              ? "producto"
+                              : "productos"}
+                          </span>
 
-                        <span className="text-xs font-semibold text-slate-400">
-                          Ticket #{group.id}
-                        </span>
+                          <span className="text-xs font-semibold text-slate-400">
+                            Ticket #{group.id}
+                          </span>
+                        </div>
+
+                        {currentUser?.role ===
+                          "ADMIN" &&
+                          !cancelled && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                cancelSale(group.id)
+                              }
+                              disabled={
+                                cancellingId ===
+                                group.id
+                              }
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {cancellingId ===
+                              group.id ? (
+                                <>
+                                  <RefreshCw
+                                    size={15}
+                                    className="animate-spin"
+                                  />
+                                  Anulando...
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle size={15} />
+                                  Anular venta
+                                </>
+                              )}
+                            </button>
+                          )}
                       </div>
                     </footer>
                   </article>

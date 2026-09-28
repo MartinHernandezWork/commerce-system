@@ -216,14 +216,6 @@ export default function OrdersPage() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "¿Confirmás que esta orden ya fue entregada?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setCompletingId(orderId);
 
     try {
