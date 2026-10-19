@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Clock3,
+  Download,
   LockKeyhole,
   ReceiptText,
   RefreshCw,
@@ -66,11 +67,43 @@ type CashRegister = {
   saleGroups: SaleGroup[];
 };
 
+type CurrentUser = {
+  id: number;
+  username: string;
+  role: "ADMIN" | "EMPLOYEE";
+};
+
 export default function CashHistoryPage() {
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch("/api/auth/me", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setCurrentUser(null);
+        return;
+      }
+
+      const user: CurrentUser = await response.json();
+      setCurrentUser(user);
+    } catch (error) {
+      console.error("Error obteniendo el usuario actual:", error);
+      setCurrentUser(null);
+    }
+  }
+
   const [data, setData] = useState<CashRegister[]>([]);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toLocaleDateString("en-CA"),
-  );
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,18 +124,14 @@ export default function CashHistoryPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          json?.error || "No se pudo cargar el historial.",
-        );
+        throw new Error(json?.error || "No se pudo cargar el historial.");
       }
 
       setData(Array.isArray(json) ? json : []);
     } catch (error: any) {
       console.error(error);
 
-      setErrorMessage(
-        error?.message || "No se pudo cargar el historial.",
-      );
+      setErrorMessage(error?.message || "No se pudo cargar el historial.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,75 +140,64 @@ export default function CashHistoryPage() {
 
   useEffect(() => {
     load();
+    loadCurrentUser();
   }, []);
 
   const filteredData = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    return data.filter((cash) => {
-      const cashDate = new Date(cash.openedAt)
-        .toLocaleDateString("en-CA");
+    if (!selectedDate) return [];
 
-      if (cashDate !== selectedDate) {
-        return false;
-      }
+    const [year, month, day] = selectedDate.split("-").map(Number);
 
-      if (!normalizedSearch) {
-        return true;
-      }
+    if (!year || !month || !day) return [];
 
-      const cashIdMatch = String(cash.id)
-        .toLowerCase()
-        .includes(normalizedSearch);
+    const dayStart = new Date(year, month - 1, day);
+    const dayEnd = new Date(year, month - 1, day + 1);
 
-      const openedDateMatch = formatDateTime(cash.openedAt)
-        .toLowerCase()
-        .includes(normalizedSearch);
+    const filtered = data.filter((cash) => {
+      const openedAt = new Date(cash.openedAt);
 
-      const closedDateMatch = cash.closedAt
-        ? formatDateTime(cash.closedAt)
-            .toLowerCase()
-            .includes(normalizedSearch)
-        : false;
+      const openedOnSelectedDay = openedAt >= dayStart && openedAt < dayEnd;
+
+      if (!openedOnSelectedDay) return false;
+
+      if (!normalizedSearch) return true;
 
       return (
-        cashIdMatch ||
-        openedDateMatch ||
-        closedDateMatch
+        String(cash.id).includes(normalizedSearch) ||
+        formatDateTime(cash.openedAt)
+          .toLowerCase()
+          .includes(normalizedSearch) ||
+        (cash.closedAt !== null &&
+          formatDateTime(cash.closedAt)
+            .toLowerCase()
+            .includes(normalizedSearch))
       );
     });
+
+    return filtered;
   }, [data, selectedDate, search]);
 
   const stats = useMemo(() => {
-    const cajasAbiertas = filteredData.filter(
-      (cash) => !cash.closedAt,
-    ).length;
+    const cajasAbiertas = filteredData.filter((cash) => !cash.closedAt).length;
 
-    const ventasTotales = filteredData.reduce(
-      (acc, cash) => {
-        const totalSales = (cash.saleGroups ?? []).reduce(
-          (sum, group) => sum + Number(group.total),
-          0,
-        );
+    const ventasTotales = filteredData.reduce((acc, cash) => {
+      const totalSales = (cash.saleGroups ?? []).reduce(
+        (sum, group) => sum + Number(group.total),
+        0,
+      );
 
-        return acc + totalSales;
-      },
-      0,
-    );
+      return acc + totalSales;
+    }, 0);
 
-    const dineroControlado = filteredData.reduce(
-      (acc, cash) => {
-        return acc + Number(cash.final || 0);
-      },
-      0,
-    );
+    const dineroControlado = filteredData.reduce((acc, cash) => {
+      return acc + Number(cash.final || 0);
+    }, 0);
 
-    const tickets = filteredData.reduce(
-      (acc, cash) => {
-        return acc + (cash.saleGroups?.length ?? 0);
-      },
-      0,
-    );
+    const tickets = filteredData.reduce((acc, cash) => {
+      return acc + (cash.saleGroups?.length ?? 0);
+    }, 0);
 
     return {
       totalCajas: filteredData.length,
@@ -195,15 +213,10 @@ export default function CashHistoryPage() {
       <div className="flex h-full min-h-[400px] items-center justify-center rounded-3xl bg-[#f6f8f7]">
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-600">
-            <RefreshCw
-              size={23}
-              className="animate-spin"
-            />
+            <RefreshCw size={23} className="animate-spin" />
           </div>
 
-          <p className="font-semibold text-slate-700">
-            Cargando historial...
-          </p>
+          <p className="font-semibold text-slate-700">Cargando historial...</p>
 
           <p className="mt-1 text-sm text-slate-400">
             Estamos buscando los registros de caja.
@@ -271,9 +284,7 @@ export default function CashHistoryPage() {
                 className={refreshing ? "animate-spin" : ""}
               />
 
-              {refreshing
-                ? "Actualizando..."
-                : "Actualizar"}
+              {refreshing ? "Actualizando..." : "Actualizar"}
             </button>
           </div>
         </div>
@@ -307,10 +318,7 @@ export default function CashHistoryPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <CalendarDays
-                    size={17}
-                    className="text-green-600"
-                  />
+                  <CalendarDays size={17} className="text-green-600" />
 
                   <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">
                     Consultar fecha
@@ -325,9 +333,7 @@ export default function CashHistoryPage() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) =>
-                  setSelectedDate(e.target.value)
-                }
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-100 sm:w-auto"
               />
             </div>
@@ -335,17 +341,11 @@ export default function CashHistoryPage() {
 
           {search && (
             <div className="flex items-center gap-2 rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
-              <Search
-                size={16}
-                className="shrink-0 text-green-600"
-              />
+              <Search size={16} className="shrink-0 text-green-600" />
 
               <p className="text-sm font-medium text-green-800">
-                Buscando{" "}
-                <span className="font-black">
-                  "{search}"
-                </span>{" "}
-                en las cajas de esta fecha.
+                Buscando <span className="font-black">"{search}"</span> en las
+                cajas de esta fecha.
               </p>
 
               <button
@@ -441,9 +441,7 @@ export default function CashHistoryPage() {
                 </div>
 
                 <h2 className="text-xl font-black text-slate-800">
-                  {search
-                    ? "No se encontraron cajas"
-                    : "Sin registros"}
+                  {search ? "No se encontraron cajas" : "Sin registros"}
                 </h2>
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-500">
@@ -471,11 +469,8 @@ export default function CashHistoryPage() {
               </div>
 
               {filteredData.map((cash) => {
-                const totalSales = (
-                  cash.saleGroups ?? []
-                ).reduce(
-                  (sum, group) =>
-                    sum + Number(group.total),
+                const totalSales = (cash.saleGroups ?? []).reduce(
+                  (sum, group) => sum + Number(group.total),
                   0,
                 );
 
@@ -518,56 +513,53 @@ export default function CashHistoryPage() {
                               >
                                 <span
                                   className={`h-1.5 w-1.5 rounded-full ${
-                                    isOpen
-                                      ? "bg-amber-500"
-                                      : "bg-green-500"
+                                    isOpen ? "bg-amber-500" : "bg-green-500"
                                   }`}
                                 />
 
-                                {isOpen
-                                  ? "Abierta"
-                                  : "Cerrada"}
+                                {isOpen ? "Abierta" : "Cerrada"}
                               </span>
                             </div>
 
                             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
                               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                                <Clock3
-                                  size={13}
-                                  className="text-slate-400"
-                                />
-
-                                Apertura{" "}
-                                {formatDateTime(
-                                  cash.openedAt,
-                                )}
+                                <Clock3 size={13} className="text-green-400" />
+                                Apertura {formatDateTime(cash.openedAt)}
                               </span>
 
                               {cash.closedAt && (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                                   <LockKeyhole
                                     size={13}
-                                    className="text-slate-400"
+                                    className="text-red-400"
                                   />
-
-                                  Cierre{" "}
-                                  {formatDateTime(
-                                    cash.closedAt,
-                                  )}
+                                  Cierre {formatDateTime(cash.closedAt)}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="shrink-0 rounded-2xl bg-green-50 px-4 py-2.5 sm:text-right">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-green-600">
-                            Ventas
-                          </p>
+                        <div className="flex flex-col gap-2 sm:items-end">
+                          {!isOpen && currentUser?.role === "ADMIN" && (
+                            <a
+                              href={`/api/cash/${cash.id}/replenishment`}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-white px-3 py-2 text-sm font-bold text-green-700 shadow-sm transition hover:bg-green-50"
+                            >
+                              <Download size={16} />
+                              Descargar Excel
+                            </a>
+                          )}
 
-                          <p className="mt-0.5 text-lg font-black text-green-700">
-                            {formatMoney(totalSales)}
-                          </p>
+                          <div className="shrink-0 rounded-2xl bg-green-50 px-4 py-2.5 sm:text-right">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-green-600">
+                              Ventas
+                            </p>
+
+                            <p className="mt-0.5 text-lg font-black text-green-700">
+                              {formatMoney(totalSales)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </header>
@@ -579,9 +571,7 @@ export default function CashHistoryPage() {
                         </p>
 
                         <p className="mt-2 text-lg font-black text-slate-800">
-                          {formatMoney(
-                            Number(cash.initial),
-                          )}
+                          {formatMoney(Number(cash.initial))}
                         </p>
                       </div>
 
@@ -601,11 +591,8 @@ export default function CashHistoryPage() {
                         </p>
 
                         <p className="mt-2 text-lg font-black text-blue-700">
-                          {cash.final !== null &&
-                          cash.final !== undefined
-                            ? formatMoney(
-                                Number(cash.final),
-                              )
+                          {cash.final !== null && cash.final !== undefined
+                            ? formatMoney(Number(cash.final))
                             : "—"}
                         </p>
                       </div>
@@ -619,9 +606,7 @@ export default function CashHistoryPage() {
                       >
                         <p
                           className={`text-[11px] font-black uppercase tracking-wider ${
-                            isOpen
-                              ? "text-amber-600"
-                              : "text-slate-400"
+                            isOpen ? "text-amber-600" : "text-slate-400"
                           }`}
                         >
                           Estado
@@ -629,14 +614,10 @@ export default function CashHistoryPage() {
 
                         <p
                           className={`mt-2 text-sm font-black ${
-                            isOpen
-                              ? "text-amber-700"
-                              : "text-slate-700"
+                            isOpen ? "text-amber-700" : "text-slate-700"
                           }`}
                         >
-                          {isOpen
-                            ? "Caja actualmente abierta"
-                            : "Caja cerrada"}
+                          {isOpen ? "Caja actualmente abierta" : "Caja cerrada"}
                         </p>
                       </div>
                     </div>
@@ -645,7 +626,6 @@ export default function CashHistoryPage() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
                           <ReceiptText size={14} />
-
                           Tickets registrados
                         </div>
 
