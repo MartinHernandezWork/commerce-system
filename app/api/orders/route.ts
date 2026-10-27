@@ -25,6 +25,8 @@ export async function GET() {
             transferAmount: true,
             cashReceived: true,
             change: true,
+            deliveryRequired: true,
+            deliveryFee: true,
           },
         },
 

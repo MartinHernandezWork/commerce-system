@@ -8,10 +8,12 @@ import {
   CircleCheck,
   LockKeyhole,
   RefreshCw,
+  UserRound,
   Wallet,
 } from "lucide-react";
 
 export default function CashPage() {
+  const [employeeName, setEmployeeName] = useState("");
   const [initial, setInitial] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,9 +23,15 @@ export default function CashPage() {
     setErrorMessage("");
     setSuccess(false);
 
+    const name = employeeName.trim();
     const amount = Number(initial);
 
-    if (!Number.isFinite(amount) || amount < 0) {
+    if (!name) {
+      setErrorMessage("Ingresá el nombre del empleado que abre la caja.");
+      return;
+    }
+
+    if (initial.trim() === "" || !Number.isFinite(amount) || amount < 0) {
       setErrorMessage("Ingresá un monto inicial válido.");
       return;
     }
@@ -37,6 +45,7 @@ export default function CashPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          employeeName: name,
           initial: amount,
         }),
       });
@@ -44,15 +53,13 @@ export default function CashPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data?.error || "No se pudo abrir la caja.",
-        );
+        throw new Error(data?.error || "No se pudo abrir la caja.");
       }
 
       setSuccess(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErrorMessage(
-        error?.message || "No se pudo abrir la caja.",
+        error instanceof Error ? error.message : "No se pudo abrir la caja.",
       );
     } finally {
       setLoading(false);
@@ -90,14 +97,52 @@ export default function CashPage() {
 
                 <div>
                   <p className="text-sm font-bold text-slate-800">
-                    Monto inicial
+                    Apertura de caja
                   </p>
 
                   <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                    Ingresá el dinero en efectivo que hay en la caja al
+                    Indicá quién abre la caja y cuánto dinero en efectivo hay al
                     comenzar la jornada.
                   </p>
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="employeeName"
+                className="mb-2 block text-sm font-bold text-slate-700"
+              >
+                Nombre del empleado
+              </label>
+
+              <div className="relative">
+                <UserRound
+                  size={18}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+
+                <input
+                  id="employeeName"
+                  type="text"
+                  autoComplete="name"
+                  maxLength={100}
+                  value={employeeName}
+                  onChange={(e) => {
+                    setEmployeeName(e.target.value);
+                    setErrorMessage("");
+                    setSuccess(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      openCash();
+                    }
+                  }}
+                  placeholder="Ingresá el nombre y apellido"
+                  disabled={loading || success}
+                  required
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:font-normal placeholder:text-slate-300 focus:border-green-400 focus:ring-4 focus:ring-green-100 disabled:bg-slate-50"
+                />
               </div>
             </div>
 
@@ -131,7 +176,9 @@ export default function CashPage() {
                     }
                   }}
                   placeholder="0"
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-9 pr-4 text-lg font-bold text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-green-400 focus:ring-4 focus:ring-green-100"
+                  disabled={loading || success}
+                  required
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-9 pr-4 text-lg font-bold text-slate-900 outline-none transition placeholder:text-slate-300 focus:border-green-400 focus:ring-4 focus:ring-green-100 disabled:bg-slate-50"
                 />
               </div>
             </div>
@@ -171,7 +218,8 @@ export default function CashPage() {
                     </p>
 
                     <p className="mt-0.5 text-xs font-medium text-green-700">
-                      Ya podés comenzar a registrar ventas.
+                      Caja abierta por {employeeName.trim()}. Ya podés comenzar
+                      a registrar ventas.
                     </p>
                   </div>
                 </div>

@@ -8,10 +8,12 @@ import {
   CircleAlert,
   Clock3,
   Download,
+  FileSpreadsheet,
   LockKeyhole,
   ReceiptText,
   RefreshCw,
   Search,
+  UserRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -53,6 +55,39 @@ function formatDateLabel(date: string) {
   });
 }
 
+function getWeekRange(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const start = new Date(year, month - 1, day);
+
+  // La semana comienza el lunes.
+  const dayOfWeek = start.getDay();
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+
+  start.setDate(start.getDate() - daysSinceMonday);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const format = (value: Date) => {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+
+    return `${y}-${m}-${d}`;
+  };
+
+  return {
+    startDate: format(start),
+    endDate: format(end),
+  };
+}
+
+function formatShortDate(date: string) {
+  const [year, month, day] = date.split("-");
+
+  return `${day}/${month}/${year}`;
+}
+
 type SaleGroup = {
   id: number;
   total: number;
@@ -64,6 +99,7 @@ type CashRegister = {
   closedAt: string | null;
   initial: number;
   final: number | null;
+  openedByName: string | null;
   saleGroups: SaleGroup[];
 };
 
@@ -104,6 +140,9 @@ export default function CashHistoryPage() {
 
     return `${year}-${month}-${day}`;
   });
+
+  const weekRange = useMemo(() => getWeekRange(selectedDate), [selectedDate]);
+
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,10 +167,14 @@ export default function CashHistoryPage() {
       }
 
       setData(Array.isArray(json) ? json : []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
 
-      setErrorMessage(error?.message || "No se pudo cargar el historial.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el historial.",
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -155,9 +198,11 @@ export default function CashHistoryPage() {
     const dayStart = new Date(year, month - 1, day);
     const dayEnd = new Date(year, month - 1, day + 1);
 
-    const filtered = data.filter((cash) => {
+    return data.filter((cash) => {
       const openedAt = new Date(cash.openedAt);
 
+      // La caja se asigna al día en que se abrió,
+      // aunque se cierre después de medianoche.
       const openedOnSelectedDay = openedAt >= dayStart && openedAt < dayEnd;
 
       if (!openedOnSelectedDay) return false;
@@ -166,6 +211,7 @@ export default function CashHistoryPage() {
 
       return (
         String(cash.id).includes(normalizedSearch) ||
+        (cash.openedByName ?? "").toLowerCase().includes(normalizedSearch) ||
         formatDateTime(cash.openedAt)
           .toLowerCase()
           .includes(normalizedSearch) ||
@@ -175,8 +221,6 @@ export default function CashHistoryPage() {
             .includes(normalizedSearch))
       );
     });
-
-    return filtered;
   }, [data, selectedDate, search]);
 
   const stats = useMemo(() => {
@@ -256,7 +300,7 @@ export default function CashHistoryPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar caja o fecha..."
+              placeholder="Buscar caja, empleado o fecha..."
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
             />
 
@@ -314,11 +358,12 @@ export default function CashHistoryPage() {
             </div>
           )}
 
+          {/* Selector de fecha */}
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <CalendarDays size={17} className="text-green-600" />
+                  <CalendarDays size={17} className="shrink-0 text-green-600" />
 
                   <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">
                     Consultar fecha
@@ -327,6 +372,11 @@ export default function CashHistoryPage() {
 
                 <p className="mt-1 text-xs font-medium capitalize text-slate-400">
                   {formatDateLabel(selectedDate)}
+                </p>
+
+                <p className="mt-2 text-xs font-semibold text-green-700">
+                  Semana del {formatShortDate(weekRange.startDate)} al{" "}
+                  {formatShortDate(weekRange.endDate)}
                 </p>
               </div>
 
@@ -338,6 +388,43 @@ export default function CashHistoryPage() {
               />
             </div>
           </section>
+
+          {/* Descarga semanal para administradores */}
+          {currentUser?.role === "ADMIN" && (
+            <section className="rounded-3xl border border-green-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700">
+                    <FileSpreadsheet size={22} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-base font-black text-slate-900">
+                      Reposición semanal de stock
+                    </h2>
+
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                      Consultá el consumo acumulado de mercadería para preparar
+                      la reposición de la semana.
+                    </p>
+
+                    <p className="mt-2 text-xs font-bold text-green-700">
+                      Período: {formatShortDate(weekRange.startDate)} al{" "}
+                      {formatShortDate(weekRange.endDate)}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={`/api/cash/replenishment/weekly?startDate=${weekRange.startDate}&endDate=${weekRange.endDate}`}
+                  className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-black text-white transition hover:bg-green-700 sm:w-auto"
+                >
+                  <Download size={17} />
+                  Descargar Excel semanal
+                </a>
+              </div>
+            </section>
+          )}
 
           {search && (
             <div className="flex items-center gap-2 rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
@@ -446,7 +533,7 @@ export default function CashHistoryPage() {
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-500">
                   {search
-                    ? "Probá buscando otro número de caja o fecha."
+                    ? "Probá buscando otro número de caja, empleado o fecha."
                     : "No hay registros de cajas para la fecha seleccionada."}
                 </p>
               </div>
@@ -521,7 +608,7 @@ export default function CashHistoryPage() {
                               </span>
                             </div>
 
-                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
                               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                                 <Clock3 size={13} className="text-green-400" />
                                 Apertura {formatDateTime(cash.openedAt)}
@@ -536,6 +623,21 @@ export default function CashHistoryPage() {
                                   Cierre {formatDateTime(cash.closedAt)}
                                 </span>
                               )}
+                            </div>
+
+                            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2">
+                              <UserRound
+                                size={16}
+                                className="shrink-0 text-blue-600"
+                              />
+
+                              <span className="text-xs font-semibold text-blue-700">
+                                Abierta por:
+                              </span>
+
+                              <span className="break-words text-sm font-black text-blue-900">
+                                {cash.openedByName?.trim() || "No registrado"}
+                              </span>
                             </div>
                           </div>
                         </div>

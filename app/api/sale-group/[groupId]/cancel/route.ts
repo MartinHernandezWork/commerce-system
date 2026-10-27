@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
@@ -9,7 +10,7 @@ export async function POST(
   try {
     const user = await getCurrentUser();
 
-    // Debe estar autenticado
+    // Debe estar autenticado.
     if (!user) {
       return NextResponse.json(
         { error: "No estás autenticado" },
@@ -17,7 +18,7 @@ export async function POST(
       );
     }
 
-    // Solo ADMIN puede anular ventas
+    // Solo ADMIN puede anular ventas.
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "No tenés permisos para anular ventas" },
@@ -35,10 +36,44 @@ export async function POST(
       );
     }
 
+    // Recibir y validar el motivo de anulación.
+    let body: unknown;
+
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Debés indicar el motivo de anulación" },
+        { status: 400 },
+      );
+    }
+
+    const cancellationReason =
+      typeof body === "object" &&
+      body !== null &&
+      "reason" in body &&
+      typeof body.reason === "string"
+        ? body.reason.trim()
+        : "";
+
+    if (!cancellationReason) {
+      return NextResponse.json(
+        { error: "El motivo de anulación es obligatorio" },
+        { status: 400 },
+      );
+    }
+
+    if (cancellationReason.length > 1000) {
+      return NextResponse.json(
+        { error: "El motivo no puede superar los 1000 caracteres" },
+        { status: 400 },
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       /*
-       * Buscamos toda la información que necesitamos para reconstruir
-       * exactamente el stock utilizado por esta venta.
+       * 1. Buscar la venta y los datos necesarios
+       * para reconstruir el stock utilizado.
        */
       const group = await tx.saleGroup.findUnique({
         where: {
@@ -46,7 +81,6 @@ export async function POST(
         },
         include: {
           sales: true,
-
           order: {
             include: {
               items: {
@@ -64,17 +98,13 @@ export async function POST(
         throw new Error("SALE_GROUP_NOT_FOUND");
       }
 
-      // Evitar que una misma venta sea anulada dos veces
+      // Evitar anular dos veces la misma venta.
       if (group.cancelledAt) {
         throw new Error("ALREADY_CANCELLED");
       }
 
       /*
-       * ============================================================
-       * 1. PRODUCTOS VENDIDOS DIRECTAMENTE
-       * ============================================================
-       *
-       * Sale.quantity ya contiene la cantidad exacta vendida.
+       * 2. Devolver los productos vendidos directamente.
        */
       for (const sale of group.sales) {
         await tx.product.update({
@@ -99,16 +129,9 @@ export async function POST(
       }
 
       /*
-       * ============================================================
-       * 2. INGREDIENTES DE RECETAS
-       * ============================================================
-       *
-       * OrderItemIngredient.quantity representa la cantidad
-       * utilizada POR UNA UNIDAD de la receta.
-       *
-       * Por eso multiplicamos:
-       *
-       * ingredient.quantity × orderItem.quantity
+       * 3. Devolver los ingredientes de las recetas.
+       * La cantidad utilizada por unidad se multiplica
+       * por la cantidad de recetas vendidas.
        */
       if (group.order) {
         for (const item of group.order.items) {
@@ -143,13 +166,8 @@ export async function POST(
         }
 
         /*
-         * ==========================================================
-         * 3. ADEREZOS Y DESCARTABLES
-         * ==========================================================
-         *
-         * OrderItemExtra.quantity ya representa la cantidad
-         * consumida del extra, por lo que NO multiplicamos
-         * nuevamente por item.quantity.
+         * 4. Devolver aderezos y descartables.
+         * Se conserva el criterio de cantidades de tu API.
          */
         for (const item of group.order.items) {
           for (const extra of item.extras) {
@@ -179,9 +197,8 @@ export async function POST(
       }
 
       /*
-       * ============================================================
-       * 4. MARCAR LA VENTA COMO ANULADA
-       * ============================================================
+       * 5. Registrar la anulación y su motivo.
+       * Todo queda guardado en la misma transacción.
        */
       const cancelledGroup = await tx.saleGroup.update({
         where: {
@@ -190,6 +207,7 @@ export async function POST(
         data: {
           cancelledAt: new Date(),
           cancelledById: user.id,
+          cancellationReason,
         },
         include: {
           cancelledBy: {
@@ -226,7 +244,10 @@ export async function POST(
       }
     }
 
-    console.error("POST /api/sale-group/[groupId]/cancel error:", error);
+    console.error(
+      "POST /api/sale-group/[groupId]/cancel error:",
+      error,
+    );
 
     return NextResponse.json(
       { error: "Error anulando la venta" },

@@ -147,9 +147,13 @@ model SaleGroup {
   cashReceived   Float         @default(0)
   change         Float         @default(0)
 
-  cancelledAt   DateTime?
-  cancelledById Int?
-  cancelledBy   User?     @relation("SaleGroupCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
+  deliveryRequired Boolean @default(false)
+  deliveryFee      Float   @default(0)
+
+  cancelledAt        DateTime?
+  cancelledById      Int?
+  cancellationReason String?   @db.Text
+  cancelledBy        User?     @relation("SaleGroupCancelledBy", fields: [cancelledById], references: [id], onDelete: SetNull)
 
   sales       Sale[]
   recipeSales RecipeSale[]
@@ -167,6 +171,8 @@ model Order {
   group   SaleGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   status OrderStatus @default(PENDING)
+
+  comment String? @db.Text
 
   createdAt   DateTime  @default(now())
   completedAt DateTime?
@@ -241,8 +247,9 @@ model CashRegister {
   openedAt DateTime  @default(now())
   closedAt DateTime?
 
-  initial Float
-  final   Float?
+  initial      Float
+  final        Float?
+  openedByName String?
 
   saleGroups SaleGroup[]
 

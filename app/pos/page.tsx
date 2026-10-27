@@ -108,6 +108,10 @@ export default function POSPage() {
   const [cashReceived, setCashReceived] = useState("");
 
   const [customerName, setCustomerName] = useState("");
+  const [saleComment, setSaleComment] = useState("");
+
+  const [deliveryRequired, setDeliveryRequired] = useState(false);
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
 
   const [cashStatus, setCashStatus] = useState<CashStatus>({
     open: false,
@@ -587,6 +591,12 @@ export default function POSPage() {
     return cart.reduce((total, item) => total + getItemTotal(item), 0);
   }, [cart]);
 
+  const deliveryFee = deliveryRequired
+    ? Math.max(0, Number.parseFloat(deliveryFeeInput.replace(",", ".")) || 0)
+    : 0;
+
+  const checkoutTotal = cartTotal + deliveryFee;
+
   const totalItems = useMemo(() => {
     return cart.reduce((total, item) => total + item.qty, 0);
   }, [cart]);
@@ -601,32 +611,34 @@ export default function POSPage() {
 
   const calculatedMixedTotal = parsedCashAmount + parsedTransferAmount;
 
-  const calculatedChange = parsedCashReceived - cartTotal;
+  const calculatedChange = parsedCashReceived - checkoutTotal;
 
   const isPaymentValid = useMemo(() => {
-    if (cartTotal <= 0) {
+    if (checkoutTotal <= 0) {
       return false;
     }
 
     if (paymentMethod === "efectivo") {
-      return parsedCashReceived >= cartTotal;
+      return parsedCashReceived >= checkoutTotal;
     }
 
     if (paymentMethod === "transferencia") {
-      return parsedTransferAmount === cartTotal;
+      return Math.abs(parsedTransferAmount - checkoutTotal) < 0.01;
     }
 
     if (paymentMethod === "mixto") {
       return (
         parsedCashAmount > 0 &&
         parsedTransferAmount > 0 &&
-        Math.abs(calculatedMixedTotal - cartTotal) < 0.01
+        Math.abs(calculatedMixedTotal - checkoutTotal) < 0.01
       );
     }
 
     return false;
   }, [
-    cartTotal,
+    checkoutTotal,
+    deliveryRequired,
+    deliveryFee,
     paymentMethod,
     parsedCashReceived,
     parsedTransferAmount,
@@ -638,13 +650,13 @@ export default function POSPage() {
     setPaymentMethod(method);
 
     if (method === "efectivo") {
-      setCashReceived(String(cartTotal));
+      setCashReceived(String(checkoutTotal));
       setCashAmount("");
       setTransferAmount("");
     }
 
     if (method === "transferencia") {
-      setTransferAmount(String(cartTotal));
+      setTransferAmount(String(checkoutTotal));
       setCashAmount("");
       setCashReceived("");
     }
@@ -671,6 +683,11 @@ export default function POSPage() {
 
     if (cart.length === 0) {
       alert("El carrito está vacío.");
+      return;
+    }
+
+    if (deliveryRequired && deliveryFee <= 0) {
+      alert("Ingresá un costo de envío mayor a $0.");
       return;
     }
 
@@ -736,12 +753,12 @@ export default function POSPage() {
     let finalCashReceived = 0;
 
     if (paymentMethod === "efectivo") {
-      finalCashAmount = cartTotal;
+      finalCashAmount = checkoutTotal;
       finalCashReceived = parsedCashReceived;
     }
 
     if (paymentMethod === "transferencia") {
-      finalTransferAmount = cartTotal;
+      finalTransferAmount = checkoutTotal;
     }
 
     if (paymentMethod === "mixto") {
@@ -781,10 +798,13 @@ export default function POSPage() {
         },
         body: JSON.stringify({
           customerName: customerName.trim() || null,
+          comment: saleComment.trim() || null,
           paymentMethod,
           cashAmount: finalCashAmount,
           transferAmount: finalTransferAmount,
           cashReceived: finalCashReceived,
+          deliveryRequired,
+          deliveryFee,
           items,
         }),
       });
@@ -802,12 +822,14 @@ export default function POSPage() {
 
       setCart([]);
       setCustomerName("");
+      setSaleComment("");
       setCashAmount("");
       setTransferAmount("");
       setCashReceived("");
+      setDeliveryRequired(false);
+      setDeliveryFeeInput("");
 
       await loadData();
-      
     } catch (error: any) {
       console.error("FINALIZE SALE ERROR:", error);
 
@@ -1169,371 +1191,459 @@ export default function POSPage() {
           </div>
         </main>
 
-        <aside className="hidden xl:flex w-[370px] 2xl:w-[410px] shrink-0 flex-col border-l border-gray-200 bg-white">
-          <div className="shrink-0 px-5 py-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center">
-                  <ShoppingCart size={19} />
+        <aside className="hidden xl:flex w-[700px] 2xl:w-[760px] shrink-0 border-l border-gray-200 bg-white">
+          <div className="flex min-w-0 flex-1 flex-col border-r border-gray-200">
+            <div className="shrink-0 px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center">
+                    <ShoppingCart size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="font-black text-gray-900">Tu pedido</h2>
+
+                    <p className="text-xs text-gray-400">
+                      {totalItems} {totalItems === 1 ? "unidad" : "unidades"}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h2 className="font-black text-gray-900">Tu pedido</h2>
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+                    title="Vaciar carrito"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                )}
+              </div>
+            </div>
 
-                  <p className="text-xs text-gray-400">
-                    {totalItems} {totalItems === 1 ? "unidad" : "unidades"}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {cart.length === 0 ? (
+                <div className="h-full min-h-64 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 text-gray-300 flex items-center justify-center">
+                    <ShoppingCart size={28} />
+                  </div>
+
+                  <h3 className="mt-4 text-sm font-bold text-gray-700">
+                    Tu pedido está vacío
+                  </h3>
+
+                  <p className="mt-1 max-w-[220px] text-xs leading-relaxed text-gray-400">
+                    Seleccioná un producto para comenzar la venta.
                   </p>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item, index) => (
+                    <div
+                      key={item.posId}
+                      className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm"
+                    >
+                      <div className="flex gap-3">
+                        <img
+                          src={item.imageUrl || "/uploads/placeholder.jpg"}
+                          alt={item.name}
+                          className="w-14 h-14 shrink-0 rounded-xl object-cover bg-gray-100"
+                        />
 
-              {cart.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearCart}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
-                  title="Vaciar carrito"
-                >
-                  <Trash2 size={17} />
-                </button>
-              )}
-            </div>
-          </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-sm text-gray-900 line-clamp-2">
+                                {item.name}
+                              </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            {cart.length === 0 ? (
-              <div className="h-full min-h-64 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 text-gray-300 flex items-center justify-center">
-                  <ShoppingCart size={28} />
-                </div>
-
-                <h3 className="mt-4 text-sm font-bold text-gray-700">
-                  Tu pedido está vacío
-                </h3>
-
-                <p className="mt-1 max-w-[220px] text-xs leading-relaxed text-gray-400">
-                  Seleccioná un producto para comenzar la venta.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {cart.map((item, index) => (
-                  <div
-                    key={item.posId}
-                    className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm"
-                  >
-                    <div className="flex gap-3">
-                      <img
-                        src={item.imageUrl || "/uploads/placeholder.jpg"}
-                        alt={item.name}
-                        className="w-14 h-14 shrink-0 rounded-xl object-cover bg-gray-100"
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-bold text-sm text-gray-900 line-clamp-2">
-                              {item.name}
+                              <div className="mt-1 text-xs font-semibold text-green-600">
+                                ${item.salePrice.toLocaleString("es-AR")} c/u
+                              </div>
                             </div>
 
-                            <div className="mt-1 text-xs font-semibold text-green-600">
-                              ${item.salePrice.toLocaleString("es-AR")} c/u
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeCartItem(index)}
+                              className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-300 hover:bg-gray-100 hover:text-gray-700 transition"
+                            >
+                              <X size={15} />
+                            </button>
                           </div>
+                        </div>
+                      </div>
+
+                      {item.units.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {item.units.map((unit, unitIndex) => (
+                            <div
+                              key={unitIndex}
+                              className="rounded-xl bg-gray-50 px-3 py-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-gray-600">
+                                  Unidad {unitIndex + 1}
+                                </span>
+
+                                {unit.extras.length === 0 && (
+                                  <span className="text-[10px] text-gray-400">
+                                    Sin extras
+                                  </span>
+                                )}
+                              </div>
+
+                              {unit.extras.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {unit.extras.map((extra) => (
+                                    <span
+                                      key={extra.productId}
+                                      className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-medium text-gray-600"
+                                    >
+                                      {extra.name} ×{extra.quantity}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center rounded-xl border border-gray-200 bg-white overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => decreaseCartItem(index)}
+                            className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition"
+                          >
+                            <Minus size={15} />
+                          </button>
+
+                          <span className="w-9 text-center text-sm font-bold text-gray-900">
+                            {item.qty}
+                          </span>
 
                           <button
                             type="button"
-                            onClick={() => removeCartItem(index)}
-                            className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-300 hover:bg-gray-100 hover:text-gray-700 transition"
+                            onClick={() => increaseCartItem(index)}
+                            className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition"
                           >
-                            <X size={15} />
+                            <Plus size={15} />
                           </button>
+                        </div>
+
+                        <div className="text-base font-black text-gray-900">
+                          ${getItemTotal(item).toLocaleString("es-AR")}
                         </div>
                       </div>
                     </div>
-
-                    {item.units.length > 0 && (
-                      <div className="mt-3 space-y-1.5">
-                        {item.units.map((unit, unitIndex) => (
-                          <div
-                            key={unitIndex}
-                            className="rounded-xl bg-gray-50 px-3 py-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-gray-600">
-                                Unidad {unitIndex + 1}
-                              </span>
-
-                              {unit.extras.length === 0 && (
-                                <span className="text-[10px] text-gray-400">
-                                  Sin extras
-                                </span>
-                              )}
-                            </div>
-
-                            {unit.extras.length > 0 && (
-                              <div className="mt-1.5 flex flex-wrap gap-1">
-                                {unit.extras.map((extra) => (
-                                  <span
-                                    key={extra.productId}
-                                    className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-[10px] font-medium text-gray-600"
-                                  >
-                                    {extra.name} ×{extra.quantity}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center rounded-xl border border-gray-200 bg-white overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => decreaseCartItem(index)}
-                          className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition"
-                        >
-                          <Minus size={15} />
-                        </button>
-
-                        <span className="w-9 text-center text-sm font-bold text-gray-900">
-                          {item.qty}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() => increaseCartItem(index)}
-                          className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-green-50 hover:text-green-600 transition"
-                        >
-                          <Plus size={15} />
-                        </button>
-                      </div>
-
-                      <div className="text-base font-black text-gray-900">
-                        ${getItemTotal(item).toLocaleString("es-AR")}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+          <div className="flex min-w-0 w-[330px] 2xl:w-[360px] shrink-0 flex-col overflow-y-auto">
+            <div className="shrink-0 border-t border-gray-200 bg-gray-50 p-4">
+              <div className="mb-3">
+                <div className="relative">
+                  <UserRound
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
 
-          <div className="shrink-0 border-t border-gray-200 bg-gray-50 p-4">
-            <div className="mb-3">
-              <div className="relative">
-                <UserRound
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(event) => setCustomerName(event.target.value)}
-                  placeholder="Nombre del cliente (opcional)"
-                  className="w-full h-10 rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
-                />
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(event) => setCustomerName(event.target.value)}
+                    placeholder="Nombre del cliente"
+                    className="w-full h-10 rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-gray-200/70">
-              <button
-                type="button"
-                onClick={() => selectPaymentMethod("efectivo")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
-                  paymentMethod === "efectivo"
-                    ? "bg-white text-green-700 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <Banknote size={15} />
-                Efectivo
-              </button>
-
-              <button
-                type="button"
-                onClick={() => selectPaymentMethod("transferencia")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
-                  paymentMethod === "transferencia"
-                    ? "bg-white text-green-700 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <ArrowRightLeft size={15} />
-                Transfer.
-              </button>
-
-              <button
-                type="button"
-                onClick={() => selectPaymentMethod("mixto")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
-                  paymentMethod === "mixto"
-                    ? "bg-white text-green-700 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                <Wallet size={15} />
-                Mixto
-              </button>
-            </div>
-
-            {paymentMethod === "efectivo" && (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                  Efectivo recibido
+              <div className="mb-3">
+                <label
+                  htmlFor="sale-comment"
+                  className="mb-1.5 block text-xs font-bold text-gray-600"
+                >
+                  Comentarios (opcional)
                 </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={cashReceived}
-                  onChange={(event) => setCashReceived(event.target.value)}
-                  placeholder="0"
-                  className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-lg font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                <textarea
+                  id="sale-comment"
+                  value={saleComment}
+                  onChange={(event) => setSaleComment(event.target.value)}
+                  placeholder="Descripción adicional..."
+                  maxLength={1000}
+                  rows={3}
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-green-400 focus:ring-4 focus:ring-green-50"
                 />
 
-                {parsedCashReceived >= cartTotal && cartTotal > 0 && (
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Vuelto</span>
+                <p className="mt-1 text-right text-[10px] text-gray-400">
+                  {saleComment.length}/1000 caracteres
+                </p>
+              </div>
 
-                    <span className="text-sm font-black text-green-600">
-                      ${Math.max(0, calculatedChange).toLocaleString("es-AR")}
+              <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3">
+                <label className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="block text-sm font-bold text-gray-800">
+                      Envío a domicilio
+                    </span>
+                    <span className="mt-0.5 block text-xs text-gray-400">
+                      Agregar el costo de envío
                     </span>
                   </div>
-                )}
-              </div>
-            )}
 
-            {paymentMethod === "transferencia" && (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                  Transferencia
+                  <input
+                    type="checkbox"
+                    checked={deliveryRequired}
+                    onChange={(event) => {
+                      setDeliveryRequired(event.target.checked);
+                      setDeliveryFeeInput("");
+                    }}
+                    className="h-5 w-5 accent-green-600"
+                  />
                 </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={transferAmount}
-                  onChange={(event) => setTransferAmount(event.target.value)}
-                  placeholder="0"
-                  className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-lg font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
-                />
+                {deliveryRequired && (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="delivery-fee"
+                      className="mb-1.5 block text-xs font-bold text-gray-600"
+                    >
+                    </label>
 
-                {parsedTransferAmount === cartTotal && cartTotal > 0 && (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-green-600">
-                    <Check size={14} />
-                    Pago completo
+                    <input
+                      id="delivery-fee"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={deliveryFeeInput}
+                      onChange={(event) =>
+                        setDeliveryFeeInput(event.target.value)
+                      }
+                      placeholder="0"
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                    />
+
+                    {deliveryFee <= 0 && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        Ingresá un costo de envío mayor a $0.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            )}
 
-            {paymentMethod === "mixto" && (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                      Efectivo
-                    </label>
+              <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-gray-200/70">
+                <button
+                  type="button"
+                  onClick={() => selectPaymentMethod("efectivo")}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
+                    paymentMethod === "efectivo"
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Banknote size={15} />
+                  Efectivo
+                </button>
 
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={cashAmount}
-                      onChange={(event) => updateMixedCash(event.target.value)}
-                      placeholder="0"
-                      className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-base font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
-                    />
-                  </div>
+                <button
+                  type="button"
+                  onClick={() => selectPaymentMethod("transferencia")}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
+                    paymentMethod === "transferencia"
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <ArrowRightLeft size={15} />
+                  Transfer.
+                </button>
 
-                  <div>
-                    <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                      Transferencia
-                    </label>
+                <button
+                  type="button"
+                  onClick={() => selectPaymentMethod("mixto")}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition ${
+                    paymentMethod === "mixto"
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Wallet size={15} />
+                  Mixto
+                </button>
+              </div>
 
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={transferAmount}
-                      onChange={(event) =>
-                        setTransferAmount(event.target.value)
-                      }
-                      placeholder="0"
-                      className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-base font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
-                    />
-                  </div>
-                </div>
+              {paymentMethod === "efectivo" && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                    Efectivo recibido
+                  </label>
 
-                <div className="mt-2">
-                  {Math.abs(calculatedMixedTotal - cartTotal) < 0.01 ? (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-green-600">
-                      <Check size={14} />
-                      Pago completo
-                    </div>
-                  ) : calculatedMixedTotal < cartTotal ? (
-                    <div className="text-xs font-semibold text-amber-600">
-                      Faltan $
-                      {(cartTotal - calculatedMixedTotal).toLocaleString(
-                        "es-AR",
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-xs font-semibold text-amber-600">
-                      Sobran $
-                      {(calculatedMixedTotal - cartTotal).toLocaleString(
-                        "es-AR",
-                      )}
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    placeholder="0"
+                    className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-lg font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                  />
+
+                  {parsedCashReceived >= checkoutTotal && checkoutTotal > 0 && (
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Vuelto</span>
+
+                      <span className="text-sm font-black text-green-600">
+                        ${Math.max(0, calculatedChange).toLocaleString("es-AR")}
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            <div className="mt-4 flex items-end justify-between">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
-                  Total
-                </div>
-
-                <div className="mt-0.5 text-2xl font-black text-gray-950">
-                  ${cartTotal.toLocaleString("es-AR")}
-                </div>
-              </div>
-
-              <div className="text-right text-[11px] text-gray-400">
-                {totalItems} {totalItems === 1 ? "producto" : "productos"}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={
-                processing ||
-                !cashStatus.open ||
-                cart.length === 0 ||
-                !isPaymentValid
-              }
-              onClick={finalizeSale}
-              className="mt-3 w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-black text-white shadow-lg shadow-green-600/20 transition hover:bg-green-700 hover:shadow-green-600/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
-            >
-              {processing ? (
-                <>
-                  <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  Cobrar venta
-                  <ArrowRight size={17} />
-                </>
               )}
-            </button>
+
+              {paymentMethod === "transferencia" && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                    Transferencia
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={transferAmount}
+                    onChange={(event) => setTransferAmount(event.target.value)}
+                    placeholder="0"
+                    className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-lg font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                  />
+
+                  {Math.abs(parsedTransferAmount - checkoutTotal) < 0.01 &&
+                    checkoutTotal > 0 && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-green-600">
+                        <Check size={14} />
+                        Pago completo
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {paymentMethod === "mixto" && (
+                <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                        Efectivo
+                      </label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cashAmount}
+                        onChange={(event) =>
+                          updateMixedCash(event.target.value)
+                        }
+                        placeholder="0"
+                        className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-base font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                        Transferencia
+                      </label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={transferAmount}
+                        onChange={(event) =>
+                          setTransferAmount(event.target.value)
+                        }
+                        placeholder="0"
+                        className="mt-1.5 w-full h-11 rounded-xl border border-gray-200 px-3 text-base font-bold text-gray-900 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-2">
+                    {Math.abs(calculatedMixedTotal - checkoutTotal) < 0.01 ? (
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-green-600">
+                        <Check size={14} />
+                        Pago completo
+                      </div>
+                    ) : calculatedMixedTotal < checkoutTotal ? (
+                      <div className="text-xs font-semibold text-amber-600">
+                        Faltan $
+                        {(checkoutTotal - calculatedMixedTotal).toLocaleString(
+                          "es-AR",
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs font-semibold text-amber-600">
+                        Sobran $
+                        {(calculatedMixedTotal - checkoutTotal).toLocaleString(
+                          "es-AR",
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                    Total
+                  </div>
+
+                  <div className="mt-0.5 text-2xl font-black text-gray-950">
+                    ${checkoutTotal.toLocaleString("es-AR")}
+                  </div>
+                  {deliveryRequired && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Productos: ${cartTotal.toLocaleString("es-AR")}
+                      {" + "}
+                      Envío: ${deliveryFee.toLocaleString("es-AR")}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-right text-[11px] text-gray-400">
+                  {totalItems} {totalItems === 1 ? "producto" : "productos"}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  processing ||
+                  !cashStatus.open ||
+                  cart.length === 0 ||
+                  !isPaymentValid
+                }
+                onClick={finalizeSale}
+                className="mt-3 w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-black text-white shadow-lg shadow-green-600/20 transition hover:bg-green-700 hover:shadow-green-600/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+              >
+                {processing ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    Cobrar venta
+                    <ArrowRight size={17} />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -1547,7 +1657,7 @@ export default function POSPage() {
               </div>
 
               <div className="text-xl font-black text-gray-900">
-                ${cartTotal.toLocaleString("es-AR")}
+                ${checkoutTotal.toLocaleString("es-AR")}
               </div>
             </div>
 

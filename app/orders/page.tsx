@@ -15,6 +15,7 @@ import {
   ChefHat,
   CircleAlert,
   CalendarDays,
+  MessageSquareText,
 } from "lucide-react";
 
 type OrderItemIngredient = {
@@ -47,6 +48,7 @@ type OrderItem = {
 type Order = {
   id: number;
   status: "PENDING" | "COMPLETED";
+  comment: string | null;
   createdAt: string;
   completedAt: string | null;
   group: {
@@ -426,6 +428,26 @@ export default function OrdersPage() {
                       )}
                     </div>
                   </div>
+                  
+                  {order.comment?.trim() && (
+                    <div className="mx-4 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:mx-5">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                          <MessageSquareText size={18} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black uppercase tracking-wide text-amber-800">
+                            Comentario de preparación
+                          </p>
+
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-relaxed text-slate-800">
+                            {order.comment}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-3 p-4 sm:p-5">
                     {order.items.map((item) => (

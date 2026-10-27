@@ -34,6 +34,8 @@ type SaleGroup = {
   id: number;
   createdAt: string;
   total: number;
+  deliveryRequired?: boolean;
+  deliveryFee?: number;
   customerName: string | null;
   paymentMethod: "CASH" | "TRANSFER" | "MIXED";
   cashAmount?: number;
@@ -42,6 +44,7 @@ type SaleGroup = {
   change?: number;
 
   cancelledAt?: string | null;
+  cancellationReason?: string | null;
 
   cancelledBy?: {
     id: number;
@@ -100,9 +103,7 @@ function formatDateLabel(date: string) {
   });
 }
 
-function getPaymentLabel(
-  paymentMethod: SaleGroup["paymentMethod"],
-) {
+function getPaymentLabel(paymentMethod: SaleGroup["paymentMethod"]) {
   switch (paymentMethod) {
     case "CASH":
       return "Efectivo";
@@ -115,9 +116,7 @@ function getPaymentLabel(
   }
 }
 
-function getPaymentStyle(
-  paymentMethod: SaleGroup["paymentMethod"],
-) {
+function getPaymentStyle(paymentMethod: SaleGroup["paymentMethod"]) {
   switch (paymentMethod) {
     case "CASH":
       return "border-green-200 bg-green-50 text-green-700";
@@ -149,8 +148,7 @@ function PaymentIcon({
 export default function HistoryPage() {
   const [groups, setGroups] = useState<SaleGroup[]>([]);
 
-  const [currentUser, setCurrentUser] =
-    useState<CurrentUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [selectedDate, setSelectedDate] = useState(
     new Date().toLocaleDateString("en-CA"),
@@ -160,8 +158,9 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [cancellingId, setCancellingId] =
-    useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [saleToCancel, setSaleToCancel] = useState<number | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -174,19 +173,15 @@ export default function HistoryPage() {
 
       setErrorMessage("");
 
-      const response = await fetch(
-        "/api/sale-group/history",
-        {
-          cache: "no-store",
-        },
-      );
+      const response = await fetch("/api/sale-group/history", {
+        cache: "no-store",
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data?.error ||
-            "No se pudo cargar el historial de ventas.",
+          data?.error || "No se pudo cargar el historial de ventas.",
         );
       }
 
@@ -195,8 +190,7 @@ export default function HistoryPage() {
       console.error(error);
 
       setErrorMessage(
-        error?.message ||
-          "No se pudo cargar el historial de ventas.",
+        error?.message || "No se pudo cargar el historial de ventas.",
       );
     } finally {
       setLoading(false);
@@ -218,21 +212,20 @@ export default function HistoryPage() {
 
       setCurrentUser(data);
     } catch (error) {
-      console.error(
-        "Error obteniendo usuario actual:",
-        error,
-      );
+      console.error("Error obteniendo usuario actual:", error);
     }
   }
 
-  async function cancelSale(groupId: number) {
-    const confirmed = window.confirm(
-      `¿Estás seguro de que querés anular la venta #${groupId}?\n\n` +
-        "Se devolverá el stock utilizado por esta venta y la venta quedará marcada como anulada.\n\n" +
-        "Esta acción no se puede deshacer desde el sistema.",
-    );
+  async function cancelSale(groupId: number, reason: string) {
+    const trimmedReason = reason.trim();
 
-    if (!confirmed) {
+    if (!trimmedReason) {
+      setErrorMessage("Tenés que escribir el motivo de la anulación.");
+      return;
+    }
+
+    if (trimmedReason.length > 1000) {
+      setErrorMessage("El motivo no puede superar los 1000 caracteres.");
       return;
     }
 
@@ -241,33 +234,33 @@ export default function HistoryPage() {
       setErrorMessage("");
       setSuccessMessage("");
 
-      const response = await fetch(
-        `/api/sale-group/${groupId}/cancel`,
-        {
-          method: "POST",
+      const response = await fetch(`/api/sale-group/${groupId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          reason: trimmedReason,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data?.error ||
-            "No se pudo anular la venta.",
-        );
+        throw new Error(data?.error || "No se pudo anular la venta.");
       }
 
-      setSuccessMessage(
-        `La venta #${groupId} fue anulada correctamente.`,
-      );
+      setSaleToCancel(null);
+      setCancellationReason("");
+
+      setSuccessMessage(`La venta #${groupId} fue anulada correctamente.`);
 
       await load();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
 
       setErrorMessage(
-        error?.message ||
-          "No se pudo anular la venta.",
+        error instanceof Error ? error.message : "No se pudo anular la venta.",
       );
     } finally {
       setCancellingId(null);
@@ -283,8 +276,7 @@ export default function HistoryPage() {
     const normalizedSearch = search.trim().toLowerCase();
 
     return groups.filter((group) => {
-      const saleDate = new Date(group.createdAt)
-        .toLocaleDateString("en-CA");
+      const saleDate = new Date(group.createdAt).toLocaleDateString("en-CA");
 
       if (saleDate !== selectedDate) {
         return false;
@@ -298,55 +290,36 @@ export default function HistoryPage() {
         .toLowerCase()
         .includes(normalizedSearch);
 
-      const customerMatch = (
-        group.customerName || "Consumidor final"
-      )
+      const customerMatch = (group.customerName || "Consumidor final")
         .toLowerCase()
         .includes(normalizedSearch);
 
       const productMatch =
         group.sales?.some((sale) =>
-          sale.productName
-            .toLowerCase()
-            .includes(normalizedSearch),
+          sale.productName.toLowerCase().includes(normalizedSearch),
         ) || false;
 
       const recipeMatch =
         group.recipeSales?.some((recipe) =>
-          recipe.recipeName
-            .toLowerCase()
-            .includes(normalizedSearch),
+          recipe.recipeName.toLowerCase().includes(normalizedSearch),
         ) || false;
 
-      return (
-        ticketMatch ||
-        customerMatch ||
-        productMatch ||
-        recipeMatch
-      );
+      return ticketMatch || customerMatch || productMatch || recipeMatch;
     });
   }, [groups, selectedDate, search]);
 
   const activeGroups = useMemo(() => {
-    return filteredGroups.filter(
-      (group) => !group.cancelledAt,
-    );
+    return filteredGroups.filter((group) => !group.cancelledAt);
   }, [filteredGroups]);
 
   const totalFacturacion = useMemo(() => {
-    return activeGroups.reduce(
-      (acc, group) => acc + Number(group.total),
-      0,
-    );
+    return activeGroups.reduce((acc, group) => acc + Number(group.total), 0);
   }, [activeGroups]);
 
   const totalProductosVendidos = useMemo(() => {
     return activeGroups.reduce((acc, group) => {
       const products =
-        group.sales?.reduce(
-          (sum, sale) => sum + Number(sale.quantity),
-          0,
-        ) || 0;
+        group.sales?.reduce((sum, sale) => sum + Number(sale.quantity), 0) || 0;
 
       const recipes =
         group.recipeSales?.reduce(
@@ -359,12 +332,10 @@ export default function HistoryPage() {
   }, [activeGroups]);
 
   const ticketPromedio =
-    activeGroups.length > 0
-      ? totalFacturacion / activeGroups.length
-      : 0;
+    activeGroups.length > 0 ? totalFacturacion / activeGroups.length : 0;
 
-  const cancelledGroups = filteredGroups.filter(
-    (group) => Boolean(group.cancelledAt),
+  const cancelledGroups = filteredGroups.filter((group) =>
+    Boolean(group.cancelledAt),
   ).length;
 
   if (loading) {
@@ -372,15 +343,10 @@ export default function HistoryPage() {
       <div className="flex h-full min-h-[400px] items-center justify-center rounded-3xl bg-[#f6f8f7]">
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-green-600">
-            <RefreshCw
-              size={23}
-              className="animate-spin"
-            />
+            <RefreshCw size={23} className="animate-spin" />
           </div>
 
-          <p className="font-semibold text-slate-700">
-            Cargando historial...
-          </p>
+          <p className="font-semibold text-slate-700">Cargando historial...</p>
 
           <p className="mt-1 text-sm text-slate-400">
             Estamos buscando las ventas registradas.
@@ -419,9 +385,7 @@ export default function HistoryPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar ticket, cliente o producto..."
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-green-400 focus:ring-4 focus:ring-green-100"
             />
@@ -447,14 +411,10 @@ export default function HistoryPage() {
             >
               <RefreshCw
                 size={17}
-                className={
-                  refreshing ? "animate-spin" : ""
-                }
+                className={refreshing ? "animate-spin" : ""}
               />
 
-              {refreshing
-                ? "Actualizando..."
-                : "Actualizar"}
+              {refreshing ? "Actualizando..." : "Actualizar"}
             </button>
           </div>
         </div>
@@ -492,9 +452,7 @@ export default function HistoryPage() {
                 </div>
 
                 <div>
-                  <p className="font-bold text-slate-800">
-                    Venta anulada
-                  </p>
+                  <p className="font-bold text-slate-800">Venta anulada</p>
 
                   <p className="mt-1 text-sm leading-relaxed text-slate-500">
                     {successMessage}
@@ -510,10 +468,7 @@ export default function HistoryPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <CalendarDays
-                    size={17}
-                    className="text-green-600"
-                  />
+                  <CalendarDays size={17} className="text-green-600" />
 
                   <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">
                     Consultar fecha
@@ -528,9 +483,7 @@ export default function HistoryPage() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) =>
-                  setSelectedDate(e.target.value)
-                }
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-green-400 focus:ring-4 focus:ring-green-100 sm:w-auto"
               />
             </div>
@@ -538,17 +491,11 @@ export default function HistoryPage() {
 
           {search && (
             <div className="flex items-center gap-2 rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
-              <Search
-                size={16}
-                className="shrink-0 text-green-600"
-              />
+              <Search size={16} className="shrink-0 text-green-600" />
 
               <p className="text-sm font-medium text-green-800">
-                Buscando{" "}
-                <span className="font-black">
-                  "{search}"
-                </span>{" "}
-                en los tickets de esta fecha.
+                Buscando <span className="font-black">"{search}"</span> en los
+                tickets de esta fecha.
               </p>
 
               <button
@@ -638,17 +585,12 @@ export default function HistoryPage() {
 
           {cancelledGroups > 0 && (
             <div className="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
-              <XCircle
-                size={17}
-                className="shrink-0 text-red-600"
-              />
+              <XCircle size={17} className="shrink-0 text-red-600" />
 
               <p className="text-sm font-semibold text-red-700">
                 {cancelledGroups}{" "}
-                {cancelledGroups === 1
-                  ? "venta anulada"
-                  : "ventas anuladas"}{" "}
-                en esta fecha
+                {cancelledGroups === 1 ? "venta anulada" : "ventas anuladas"} en
+                esta fecha
               </p>
             </div>
           )}
@@ -661,9 +603,7 @@ export default function HistoryPage() {
                 </div>
 
                 <h2 className="text-xl font-black text-slate-800">
-                  {search
-                    ? "No se encontraron ventas"
-                    : "Sin ventas"}
+                  {search ? "No se encontraron ventas" : "Sin ventas"}
                 </h2>
 
                 <p className="mt-2 text-sm leading-relaxed text-slate-500">
@@ -677,9 +617,7 @@ export default function HistoryPage() {
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-slate-800">
-                    Tickets
-                  </h2>
+                  <h2 className="text-lg font-black text-slate-800">Tickets</h2>
 
                   <p className="text-xs font-medium text-slate-400">
                     {filteredGroups.length}{" "}
@@ -691,13 +629,10 @@ export default function HistoryPage() {
               </div>
 
               {filteredGroups.map((group) => {
-                const cancelled = Boolean(
-                  group.cancelledAt,
-                );
+                const cancelled = Boolean(group.cancelledAt);
 
                 const productCount =
-                  (group.sales?.length ?? 0) +
-                  (group.recipeSales?.length ?? 0);
+                  (group.sales?.length ?? 0) + (group.recipeSales?.length ?? 0);
 
                 return (
                   <article
@@ -712,10 +647,7 @@ export default function HistoryPage() {
                       <div className="border-b border-red-200 bg-red-50 px-5 py-3 sm:px-6">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-2">
-                            <XCircle
-                              size={17}
-                              className="text-red-600"
-                            />
+                            <XCircle size={17} className="text-red-600" />
 
                             <span className="text-xs font-black uppercase tracking-wider text-red-700">
                               Venta anulada
@@ -728,15 +660,33 @@ export default function HistoryPage() {
                               <span className="font-black">
                                 {group.cancelledBy.username}
                               </span>
-
                               {group.cancelledAt &&
                                 ` · ${formatDate(
                                   group.cancelledAt,
-                                )} ${formatTime(
-                                  group.cancelledAt,
-                                )}`}
+                                )} ${formatTime(group.cancelledAt)}`}
                             </span>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {cancelled && (
+                      <div className="border-b border-red-100 bg-white px-5 py-4 sm:px-6">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                            <CircleAlert size={18} />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                              Motivo de anulación
+                            </p>
+
+                            <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-relaxed text-slate-700">
+                              {group.cancellationReason?.trim() ||
+                                "Sin motivo registrado (anulación anterior a esta función)."}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -764,46 +714,31 @@ export default function HistoryPage() {
                                 className="text-slate-400"
                               />
 
-                              {formatDate(
-                                group.createdAt,
-                              )}
+                              {formatDate(group.createdAt)}
                             </span>
 
                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <Clock3
-                                size={14}
-                                className="text-slate-400"
-                              />
+                              <Clock3 size={14} className="text-slate-400" />
 
-                              {formatTime(
-                                group.createdAt,
-                              )}
+                              {formatTime(group.createdAt)}
                             </span>
 
                             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <User
-                                size={14}
-                                className="text-slate-400"
-                              />
+                              <User size={14} className="text-slate-400" />
 
-                              {group.customerName ||
-                                "Consumidor final"}
+                              {group.customerName || "Consumidor final"}
                             </span>
                           </div>
                         </div>
 
                         <div
                           className={`shrink-0 rounded-2xl px-4 py-2.5 sm:text-right ${
-                            cancelled
-                              ? "bg-red-50"
-                              : "bg-green-50"
+                            cancelled ? "bg-red-50" : "bg-green-50"
                           }`}
                         >
                           <p
                             className={`text-[10px] font-bold uppercase tracking-wider ${
-                              cancelled
-                                ? "text-red-600"
-                                : "text-green-600"
+                              cancelled ? "text-red-600" : "text-green-600"
                             }`}
                           >
                             Total
@@ -816,10 +751,14 @@ export default function HistoryPage() {
                                 : "text-green-700"
                             }`}
                           >
-                            {formatMoney(
-                              Number(group.total),
-                            )}
+                            {formatMoney(Number(group.total))}
                           </p>
+                          {group.deliveryRequired && (
+                            <p className="mt-1 text-xs font-bold text-slate-500">
+                              Envío{" "}
+                              {formatMoney(Number(group.deliveryFee || 0))}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </header>
@@ -835,50 +774,30 @@ export default function HistoryPage() {
                             group.paymentMethod,
                           )}`}
                         >
-                          <PaymentIcon
-                            paymentMethod={
-                              group.paymentMethod
-                            }
-                          />
+                          <PaymentIcon paymentMethod={group.paymentMethod} />
 
-                          {getPaymentLabel(
-                            group.paymentMethod,
-                          )}
+                          {getPaymentLabel(group.paymentMethod)}
                         </span>
 
-                        {group.paymentMethod ===
-                          "MIXED" && (
+                        {group.paymentMethod === "MIXED" && (
                           <>
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
                               <Banknote size={13} />
 
-                              {formatMoney(
-                                Number(
-                                  group.cashAmount || 0,
-                                ),
-                              )}
+                              {formatMoney(Number(group.cashAmount || 0))}
                             </span>
 
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
                               <CreditCard size={13} />
 
-                              {formatMoney(
-                                Number(
-                                  group.transferAmount ||
-                                    0,
-                                ),
-                              )}
+                              {formatMoney(Number(group.transferAmount || 0))}
                             </span>
                           </>
                         )}
 
-                        {Number(group.change || 0) >
-                          0 && (
+                        {Number(group.change || 0) > 0 && (
                           <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-bold text-green-700">
-                            Vuelto{" "}
-                            {formatMoney(
-                              Number(group.change),
-                            )}
+                            Vuelto {formatMoney(Number(group.change))}
                           </span>
                         )}
                       </div>
@@ -887,10 +806,7 @@ export default function HistoryPage() {
                     <div className="p-4 sm:p-5">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                          <ShoppingBag
-                            size={16}
-                            className="text-green-600"
-                          />
+                          <ShoppingBag size={16} className="text-green-600" />
 
                           <h4 className="text-sm font-black uppercase tracking-wide text-slate-600">
                             Productos
@@ -899,68 +815,58 @@ export default function HistoryPage() {
 
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                           {productCount}{" "}
-                          {productCount === 1
-                            ? "línea"
-                            : "líneas"}
+                          {productCount === 1 ? "línea" : "líneas"}
                         </span>
                       </div>
 
                       <div className="overflow-hidden rounded-2xl border border-slate-200">
-                        {group.sales?.map(
-                          (sale, index) => (
-                            <div
-                              key={`product-${sale.id}`}
-                              className={`flex items-center justify-between gap-4 bg-white px-4 py-3.5 ${
-                                index > 0
-                                  ? "border-t border-slate-100"
-                                  : ""
-                              }`}
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-slate-700">
-                                  {sale.productName}
-                                </p>
+                        {group.sales?.map((sale, index) => (
+                          <div
+                            key={`product-${sale.id}`}
+                            className={`flex items-center justify-between gap-4 bg-white px-4 py-3.5 ${
+                              index > 0 ? "border-t border-slate-100" : ""
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-slate-700">
+                                {sale.productName}
+                              </p>
 
-                                <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                                  Producto
-                                </p>
-                              </div>
-
-                              <span className="shrink-0 rounded-xl bg-slate-50 px-2.5 py-1.5 text-xs font-black text-slate-700">
-                                x{sale.quantity}
-                              </span>
+                              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                                Producto
+                              </p>
                             </div>
-                          ),
-                        )}
 
-                        {group.recipeSales?.map(
-                          (item, index) => (
-                            <div
-                              key={`recipe-${item.id}`}
-                              className={`flex items-center justify-between gap-4 bg-green-50/40 px-4 py-3.5 ${
-                                index > 0 ||
-                                (group.sales?.length ??
-                                  0) > 0
-                                  ? "border-t border-slate-100"
-                                  : ""
-                              }`}
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-slate-700">
-                                  {item.recipeName}
-                                </p>
+                            <span className="shrink-0 rounded-xl bg-slate-50 px-2.5 py-1.5 text-xs font-black text-slate-700">
+                              x{sale.quantity}
+                            </span>
+                          </div>
+                        ))}
 
-                                <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-green-600">
-                                  Receta
-                                </p>
-                              </div>
+                        {group.recipeSales?.map((item, index) => (
+                          <div
+                            key={`recipe-${item.id}`}
+                            className={`flex items-center justify-between gap-4 bg-green-50/40 px-4 py-3.5 ${
+                              index > 0 || (group.sales?.length ?? 0) > 0
+                                ? "border-t border-slate-100"
+                                : ""
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-slate-700">
+                                {item.recipeName}
+                              </p>
 
-                              <span className="shrink-0 rounded-xl bg-white px-2.5 py-1.5 text-xs font-black text-slate-700 shadow-sm">
-                                x{item.quantity}
-                              </span>
+                              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-green-600">
+                                Receta
+                              </p>
                             </div>
-                          ),
-                        )}
+
+                            <span className="shrink-0 rounded-xl bg-white px-2.5 py-1.5 text-xs font-black text-slate-700 shadow-sm">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -969,11 +875,8 @@ export default function HistoryPage() {
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400">
                             <ReceiptText size={14} />
-
                             {productCount}{" "}
-                            {productCount === 1
-                              ? "producto"
-                              : "productos"}
+                            {productCount === 1 ? "producto" : "productos"}
                           </span>
 
                           <span className="text-xs font-semibold text-slate-400">
@@ -981,37 +884,30 @@ export default function HistoryPage() {
                           </span>
                         </div>
 
-                        {currentUser?.role ===
-                          "ADMIN" &&
-                          !cancelled && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                cancelSale(group.id)
-                              }
-                              disabled={
-                                cancellingId ===
-                                group.id
-                              }
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {cancellingId ===
-                              group.id ? (
-                                <>
-                                  <RefreshCw
-                                    size={15}
-                                    className="animate-spin"
-                                  />
-                                  Anulando...
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle size={15} />
-                                  Anular venta
-                                </>
-                              )}
-                            </button>
-                          )}
+                        {currentUser?.role === "ADMIN" && !cancelled && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setErrorMessage("");
+                              setCancellationReason("");
+                              setSaleToCancel(group.id);
+                            }}
+                            disabled={cancellingId === group.id}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {cancellingId === group.id ? (
+                              <>
+                                <RefreshCw size={15} className="animate-spin" />
+                                Anulando...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle size={15} />
+                                Anular venta
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </footer>
                   </article>
@@ -1021,6 +917,147 @@ export default function HistoryPage() {
           )}
         </div>
       </main>
+
+      {saleToCancel !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-sale-title"
+            className="my-auto w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <div className="flex items-start gap-3 border-b border-slate-100 p-5 sm:p-6">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                <XCircle size={23} />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2
+                  id="cancel-sale-title"
+                  className="text-lg font-black text-slate-900"
+                >
+                  Anular venta #{saleToCancel}
+                </h2>
+
+                <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                  Indicá el motivo para que quede registrado en el historial.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (cancellingId === null) {
+                    setSaleToCancel(null);
+                    setCancellationReason("");
+                    setErrorMessage("");
+                  }
+                }}
+                disabled={cancellingId !== null}
+                className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40"
+                aria-label="Cerrar ventana"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5 sm:p-6">
+              <div>
+                <label
+                  htmlFor="cancellation-reason"
+                  className="mb-2 block text-sm font-bold text-slate-700"
+                >
+                  Motivo de anulación
+                  <span className="ml-1 text-red-600">*</span>
+                </label>
+
+                <textarea
+                  id="cancellation-reason"
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  placeholder="Ej.: Se cargó dos veces el mismo producto..."
+                  maxLength={1000}
+                  rows={4}
+                  autoFocus
+                  disabled={cancellingId !== null}
+                  className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-red-400 focus:ring-4 focus:ring-red-50 disabled:bg-slate-50"
+                />
+
+                <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-400">
+                    La nota quedará guardada en el historial.
+                  </p>
+
+                  <span
+                    className={`shrink-0 text-xs font-semibold ${
+                      cancellationReason.length >= 1000
+                        ? "text-red-600"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {cancellationReason.length}/1000
+                  </span>
+                </div>
+              </div>
+
+              {errorMessage && (
+                <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <CircleAlert size={17} className="mt-0.5 shrink-0" />
+                  <p>{errorMessage}</p>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs leading-relaxed text-amber-800">
+                  Al confirmar, la venta quedará anulada y se devolverá el stock
+                  correspondiente. Esta acción no se puede deshacer desde el
+                  sistema.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaleToCancel(null);
+                    setCancellationReason("");
+                    setErrorMessage("");
+                  }}
+                  disabled={cancellingId !== null}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Volver
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void cancelSale(saleToCancel, cancellationReason);
+                  }}
+                  disabled={
+                    cancellingId !== null ||
+                    !cancellationReason.trim() ||
+                    cancellationReason.trim().length > 1000
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {cancellingId === saleToCancel ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Anulando venta...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle size={16} />
+                      Confirmar anulación
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
